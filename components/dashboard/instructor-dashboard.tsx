@@ -5,6 +5,7 @@ import { useMutation, usePaginatedQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import type { Doc, Id } from "@/convex/_generated/dataModel"
 import { Button } from "@/components/ui/button"
+import AssignmentsPanel from "./assignments-panel"
 import { courseError, inputClassName, LoadMore } from "./course-ui"
 
 export default function InstructorDashboard({ name }: { name: string | null }) {
@@ -18,11 +19,16 @@ export default function InstructorDashboard({ name }: { name: string | null }) {
   const [selectedCourse, setSelectedCourse] = useState<Id<"courses"> | null>(
     null
   )
+  const [assignmentsCourse, setAssignmentsCourse] =
+    useState<Id<"courses"> | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const courseToReview = courses.results.find(
     (course) => course._id === selectedCourse
+  )
+  const courseForAssignments = courses.results.find(
+    (course) => course._id === assignmentsCourse
   )
 
   async function createCourse(event: FormEvent<HTMLFormElement>) {
@@ -156,6 +162,13 @@ export default function InstructorDashboard({ name }: { name: string | null }) {
                 >
                   Review requests
                 </Button>
+                <Button
+                  variant="secondary"
+                  onClick={() => setAssignmentsCourse(course._id)}
+                  aria-pressed={assignmentsCourse === course._id}
+                >
+                  Assignments
+                </Button>
               </div>
             </article>
           ))}
@@ -164,6 +177,12 @@ export default function InstructorDashboard({ name }: { name: string | null }) {
       </div>
       {courseToReview && (
         <PendingRequests key={courseToReview._id} course={courseToReview} />
+      )}
+      {courseForAssignments && (
+        <AssignmentsPanel
+          key={courseForAssignments._id}
+          course={courseForAssignments}
+        />
       )}
     </section>
   )

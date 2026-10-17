@@ -6,6 +6,7 @@ import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
 import { Button } from "@/components/ui/button"
 import { courseError, LoadMore } from "./course-ui"
+import StudentAssignments from "./student-assignments"
 
 const statusLabel = {
   pending: "Awaiting instructor approval",
@@ -25,6 +26,7 @@ export default function StudentDashboard({ name }: { name: string | null }) {
     { initialNumItems: 20 }
   )
   const request = useMutation(api.enrollments.request)
+  const [openCourse, setOpenCourse] = useState<Id<"courses"> | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
@@ -115,6 +117,28 @@ export default function StudentDashboard({ name }: { name: string | null }) {
               {statusLabel[enrollment.status]}
               {!enrollment.courseActive ? " · Course inactive" : ""}
             </p>
+            {enrollment.status === "approved" && (
+              <>
+                <Button
+                  variant="secondary"
+                  aria-expanded={openCourse === enrollment.courseId}
+                  onClick={() =>
+                    setOpenCourse(
+                      openCourse === enrollment.courseId
+                        ? null
+                        : enrollment.courseId
+                    )
+                  }
+                >
+                  {openCourse === enrollment.courseId
+                    ? "Hide assignments"
+                    : "View assignments"}
+                </Button>
+                {openCourse === enrollment.courseId && (
+                  <StudentAssignments courseId={enrollment.courseId} />
+                )}
+              </>
+            )}
           </article>
         ))}
         <LoadMore status={enrollments.status} loadMore={enrollments.loadMore} />

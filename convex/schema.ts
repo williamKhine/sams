@@ -28,6 +28,13 @@ export default defineSchema({
     .index("by_courseId_and_status", ["courseId", "status"])
     .index("by_studentId", ["studentId"]),
 
+  assignments: defineTable({
+    courseId: v.id("courses"),
+    title: v.string(),
+    description: v.string(),
+    dueDate: v.number(),
+  }).index("by_courseId_and_dueDate", ["courseId", "dueDate"]),
+
   tasks: defineTable({
     isCompleted: v.boolean(),
     text: v.string(),

@@ -3,6 +3,13 @@ import { Button } from "@/components/ui/button"
 
 export const inputClassName = "w-full rounded-md border bg-background px-3 py-2"
 
+export function formatDue(timestamp: number) {
+  return new Date(timestamp).toLocaleString(undefined, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  })
+}
+
 export function courseError(error: unknown) {
   return error instanceof ConvexError && typeof error.data === "string"
     ? error.data
