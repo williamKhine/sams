@@ -2,6 +2,32 @@ import { defineSchema, defineTable } from "convex/server"
 import { v } from "convex/values"
 
 export default defineSchema({
+  courses: defineTable({
+    instructorId: v.id("users"),
+    name: v.string(),
+    code: v.string(),
+    maxStudents: v.number(),
+    active: v.boolean(),
+    approvedCount: v.number(),
+  })
+    .index("by_instructorId", ["instructorId"])
+    .index("by_instructorId_and_code", ["instructorId", "code"])
+    .index("by_active", ["active"]),
+
+  enrollments: defineTable({
+    courseId: v.id("courses"),
+    studentId: v.id("users"),
+    status: v.union(
+      v.literal("pending"),
+      v.literal("approved"),
+      v.literal("rejected")
+    ),
+    decidedAt: v.optional(v.number()),
+  })
+    .index("by_courseId_and_studentId", ["courseId", "studentId"])
+    .index("by_courseId_and_status", ["courseId", "status"])
+    .index("by_studentId", ["studentId"]),
+
   tasks: defineTable({
     isCompleted: v.boolean(),
     text: v.string(),
