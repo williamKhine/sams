@@ -16,5 +16,7 @@ export default defineSchema({
     sourceUpdatedAt: v.number(),
     eventTimestamp: v.number(),
     deletedAt: v.union(v.number(), v.null()),
+    role: v.optional(v.union(v.literal("instructor"), v.literal("student"))),
+    roleSelectedAt: v.optional(v.number()),
   }).index("by_issuer_and_clerkId", ["issuer", "clerkId"]),
 })

@@ -1,10 +1,58 @@
-import { v } from "convex/values"
-import { internalMutation, query } from "./_generated/server"
+import { ConvexError, v } from "convex/values"
+import { internalMutation, mutation, query } from "./_generated/server"
 
 const nullableString = v.union(v.string(), v.null())
+const roleValidator = v.union(v.literal("instructor"), v.literal("student"))
 
-// Profile availability is separate from authentication: null can mean the
-// authenticated user's profile webhook has not arrived yet.
+export const selectRole = mutation({
+  args: { role: roleValidator },
+  returns: roleValidator,
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) throw new ConvexError("Sign in to select your role.")
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_issuer_and_clerkId", (q) =>
+        q.eq("issuer", identity.issuer).eq("clerkId", identity.subject)
+      )
+      .unique()
+
+    if (user) {
+      if (user.deletedAt !== null)
+        throw new ConvexError("This account has been deleted.")
+      if (user.role) {
+        if (user.role !== args.role) {
+          throw new ConvexError(
+            "Your role has already been selected and cannot be changed."
+          )
+        }
+        return user.role
+      }
+      await ctx.db.patch("users", user._id, {
+        role: args.role,
+        roleSelectedAt: Date.now(),
+      })
+    } else {
+
+
+      await ctx.db.insert("users", {
+        issuer: identity.issuer,
+        clerkId: identity.subject,
+        name: identity.name ?? null,
+        email: identity.email ?? null,
+        imageUrl: identity.pictureUrl ?? null,
+        sourceUpdatedAt: 0,
+        eventTimestamp: 0,
+        deletedAt: null,
+        role: args.role,
+        roleSelectedAt: Date.now(),
+      })
+    }
+    return args.role
+  },
+})
+
+
 export const current = query({
   args: {},
   returns: v.union(
@@ -14,6 +62,8 @@ export const current = query({
       name: nullableString,
       imageUrl: nullableString,
       email: nullableString,
+      role: v.optional(v.union(v.literal("instructor"), v.literal("student"))),
+      roleSelectedAt: v.optional(v.number()),
     })
   ),
   handler: async (ctx) => {
@@ -33,6 +83,8 @@ export const current = query({
       name: user.name,
       imageUrl: user.imageUrl,
       email: user.email,
+      role: user.role,
+      roleSelectedAt: user.roleSelectedAt,
     }
   },
 })
@@ -57,8 +109,7 @@ export const upsertFromClerk = internalMutation({
       .unique()
 
     if (existing) {
-      // Clerk user IDs are not reused. A delayed update must never resurrect
-      // a deleted account, including when deletion arrived before creation.
+
       if (existing.deletedAt !== null) return null
       if (
         args.sourceUpdatedAt < existing.sourceUpdatedAt ||
@@ -93,7 +144,7 @@ export const deleteFromClerk = internalMutation({
       return null
     }
 
-    // Retain only identity and ordering metadata after account deletion.
+
     const tombstone = {
       ...args,
       name: null,
