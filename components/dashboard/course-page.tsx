@@ -9,7 +9,13 @@ import AssignmentsPanel from "./assignments-panel"
 import StudentAssignments from "./student-assignments"
 import { formatDue } from "./course-ui"
 import StudentSubmission from "./student-submission"
+import InstructorReview from "./instructor-review"
+import { CourseGrades } from "./student-grades"
+import { ClassProgress } from "./class-progress"
 import { useAssignmentClock } from "./assignment-status"
+import { useCourseShell } from "./course-shell"
+import CourseSubmissionHistory from "./student-work-page"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
 export default function CoursePage({
   courseId,
@@ -17,96 +23,41 @@ export default function CoursePage({
   assignmentId,
 }: {
   courseId: string
-  view?: "overview" | "assignments"
+  view?: "overview" | "assignments" | "grades" | "submissions"
   assignmentId?: string
 }) {
-  const user = useQuery(api.users.current)
-  const course = useQuery(
-    api.courses.get,
-    user?.role
-      ? {
-          courseId: courseId as Id<"courses">,
-          role: user.role,
-        }
-      : "skip"
-  )
+  const { course, role } = useCourseShell()
   const assignment = useQuery(
     api.assignments.get,
-    user?.role && course && assignmentId
+    role && course && assignmentId
       ? {
           courseId: course._id,
           assignmentId: assignmentId as Id<"assignments">,
-          role: user.role,
+          role: role,
         }
       : "skip"
   )
   const now = useAssignmentClock()
   const courseUrl = `/dashboard/courses/${courseId}`
 
-  if (course === undefined) return <p role="status">Loading course…</p>
-  if (course === null)
-    return (
-      <div className="space-y-4">
-        <h1 className="text-2xl font-semibold">Course unavailable</h1>
-        <p>This course could not be found or you do not have access.</p>
-        <Link className="text-primary hover:underline" href="/dashboard">
-          Back to courses
-        </Link>
-      </div>
-    )
-
   return (
     <section className="space-y-6">
-      <nav aria-label="Breadcrumb" className="flex flex-wrap gap-2 text-sm">
-        <Link className="hover:underline" href="/dashboard">
-          My courses
-        </Link>
-        <span aria-hidden="true">/</span>
-        <Link className="hover:underline" href={courseUrl}>
-          {course.code}
-        </Link>
-        {(view === "assignments" || assignmentId) && (
-          <>
-            <span aria-hidden="true">/</span>
-            <Link className="hover:underline" href={`${courseUrl}/assignments`}>
-              Assignments
-            </Link>
-          </>
-        )}
-        {assignmentId && (
-          <>
-            <span aria-hidden="true">/</span>
-            <span>{assignment?.title ?? "Assignment"}</span>
-          </>
-        )}
-      </nav>
-      <div className="space-y-2">
-        <h1 className="text-3xl font-semibold">{course.name}</h1>
-        <p>
-          {course.code} · {course.active ? "Active" : "Inactive"}
-        </p>
-      </div>
-      <nav aria-label="Course navigation" className="flex gap-6 border-b pb-3">
-        <Link
-          className="hover:underline aria-[current=page]:font-semibold"
-          aria-current={
-            view === "overview" && !assignmentId ? "page" : undefined
-          }
-          href={courseUrl}
-        >
-          Course home
-        </Link>
-        <Link
-          className="hover:underline aria-[current=page]:font-semibold"
-          aria-current={
-            view === "assignments" || assignmentId ? "page" : undefined
-          }
-          href={`${courseUrl}/assignments`}
-        >
-          Assignments
-        </Link>
-      </nav>
-      {assignmentId ? (
+      {view === "submissions" ? (
+        role === "student" ? (
+          <CourseSubmissionHistory courseId={course._id} />
+        ) : (
+          <p>Submission history is available to students.</p>
+        )
+      ) : view === "grades" ? (
+        role === "student" ? (
+          <div className="space-y-4">
+            <h2 className="text-2xl font-semibold">Grades</h2>
+            <CourseGrades courseId={course._id} />
+          </div>
+        ) : (
+          <p>This grades view is available to students.</p>
+        )
+      ) : assignmentId ? (
         assignment === undefined ? (
           <p role="status">Loading assignment…</p>
         ) : assignment === null ? (
@@ -128,7 +79,7 @@ export default function CoursePage({
                   {assignment.description || "No description provided."}
                 </p>
               </div>
-              {user?.role === "instructor" && (
+              {role === "instructor" && (
                 <Link
                   className="text-primary hover:underline"
                   href={`${courseUrl}/assignments`}
@@ -137,7 +88,13 @@ export default function CoursePage({
                 </Link>
               )}
             </article>
-            {user?.role === "student" && (
+            {role === "instructor" && (
+              <InstructorReview
+                assignment={assignment}
+                studentCount={course.approvedCount}
+              />
+            )}
+            {role === "student" && (
               <StudentSubmission
                 key={assignment._id}
                 assignmentId={assignment._id}
@@ -147,23 +104,74 @@ export default function CoursePage({
           </div>
         )
       ) : view === "assignments" ? (
-        user?.role === "instructor" ? (
+        role === "instructor" ? (
           <AssignmentsPanel key={course._id} course={course} />
         ) : (
           <StudentAssignments key={course._id} courseId={course._id} />
         )
       ) : (
         <div className="space-y-6">
-          <p>
-            {course.approvedCount} / {course.maxStudents} students enrolled
-          </p>
-          <Link
-            className="inline-block text-primary hover:underline"
-            href={`${courseUrl}/assignments`}
-          >
-            View assignments →
-          </Link>
-          {user?.role === "instructor" && <PendingRequests course={course} />}
+          <div className="grid gap-6 md:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle>Welcome to your course</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-sm leading-relaxed text-muted-foreground">
+                  Find your assignments, review instructions, and keep track of
+                  deadlines in your course workspace.
+                </p>
+                <Link
+                  className="inline-block text-sm font-medium text-primary hover:underline"
+                  href={`${courseUrl}/assignments`}
+                >
+                  View assignments →
+                </Link>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle>Course information</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <dl className="space-y-3 text-sm">
+                  <div className="flex justify-between gap-4">
+                    <dt className="text-muted-foreground">Course code</dt>
+                    <dd className="font-medium">{course.code}</dd>
+                  </div>
+                  <div className="flex justify-between gap-4 border-t pt-3">
+                    <dt className="text-muted-foreground">Enrollment</dt>
+                    <dd>
+                      {course.approvedCount} / {course.maxStudents} students
+                    </dd>
+                  </div>
+                </dl>
+              </CardContent>
+            </Card>
+          </div>
+          {role === "instructor" && (
+            <>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Class progress</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <p className="text-sm text-muted-foreground">
+                    {course.assignmentCount ?? 0} assignments ·{" "}
+                    {course.submissionCount ?? 0} submission attempts ·{" "}
+                    {course.gradedCount ?? 0} graded
+                  </p>
+                  <ClassProgress
+                    completed={course.completedCount ?? 0}
+                    expected={
+                      (course.assignmentCount ?? 0) * course.approvedCount
+                    }
+                  />
+                </CardContent>
+              </Card>
+              <PendingRequests course={course} />
+            </>
+          )}
         </div>
       )}
     </section>

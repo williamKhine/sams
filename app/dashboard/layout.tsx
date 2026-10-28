@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import { useAuth } from "@clerk/nextjs"
 import { useConvexAuth, useQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
-import StudentNavigation from "@/components/dashboard/student-navigation"
+import DashboardNavigation from "@/components/dashboard/dashboard-navigation"
 
 export default function DashboardLayout({
   children,
@@ -26,7 +26,7 @@ export default function DashboardLayout({
   }, [router, isLoaded, isSignedIn, isAuthenticated, user])
 
   return (
-    <main className="container mx-auto py-12">
+    <div className="flex flex-1 flex-col [&>p]:mx-auto [&>p]:py-16">
       {!isLoaded || isLoading ? (
         <p role="status">Loading your account…</p>
       ) : !isSignedIn ? (
@@ -42,10 +42,12 @@ export default function DashboardLayout({
         <p role="status">Returning to role selection…</p>
       ) : (
         <>
-          {user.role === "student" && <StudentNavigation />}
-          {children}
+          <DashboardNavigation role={user.role} />
+          <div className="page-width dashboard-content w-full flex-1 py-8 sm:py-10">
+            {children}
+          </div>
         </>
       )}
-    </main>
+    </div>
   )
 }

@@ -1,5 +1,10 @@
 "use client"
 
+import StudentFeedback from "./student-feedback"
+import { Label } from "@/components/ui/label"
+
+import { Input } from "@/components/ui/input"
+
 import { useRef, useState, type FormEvent } from "react"
 import { useAuth } from "@clerk/nextjs"
 import { usePaginatedQuery } from "convex/react"
@@ -110,12 +115,13 @@ export default function StudentSubmission({
           Last submitted {formatDue(latest._creationTime)}
         </p>
       )}
+      <StudentFeedback assignmentId={assignmentId} />
       <form onSubmit={submit} className="space-y-4">
-        <label className="block space-y-2">
+        <Label className="block space-y-2">
           <span className="font-medium">
             {latest ? "Submit another attempt" : "Add a file"}
           </span>
-          <input
+          <Input
             ref={fileInput}
             type="file"
             required
@@ -129,7 +135,7 @@ export default function StudentSubmission({
               setNotice(null)
             }}
           />
-        </label>
+        </Label>
         <p id="submission-file-help" className="text-sm text-muted-foreground">
           One file per attempt, up to 25 MB. For multiple files, upload a ZIP.
           Earlier attempts remain in your history.

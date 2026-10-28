@@ -1,5 +1,11 @@
 "use client"
 
+import { Label } from "@/components/ui/label"
+
+import { Textarea } from "@/components/ui/textarea"
+
+import { Input } from "@/components/ui/input"
+
 import { useState, type FormEvent } from "react"
 import Link from "next/link"
 import { useMutation, usePaginatedQuery } from "convex/react"
@@ -8,7 +14,7 @@ import type { Doc } from "@/convex/_generated/dataModel"
 import { Button } from "@/components/ui/button"
 import { courseError, formatDue, inputClassName, LoadMore } from "./course-ui"
 
-// <input type="datetime-local"> works in local time without a timezone suffix.
+// <Input type="datetime-local"> works in local time without a timezone suffix.
 function toLocalInputValue(timestamp: number) {
   const date = new Date(timestamp)
   const pad = (n: number) => String(n).padStart(2, "0")
@@ -101,9 +107,9 @@ export default function AssignmentsPanel({
         <h3 className="text-lg font-semibold">
           {editing ? "Edit assignment" : "New assignment"}
         </h3>
-        <label className="block space-y-1">
+        <Label className="block space-y-1">
           <span>Title</span>
-          <input
+          <Input
             className={inputClassName}
             name="title"
             required
@@ -111,10 +117,10 @@ export default function AssignmentsPanel({
             disabled={busy}
             defaultValue={editing?.title}
           />
-        </label>
-        <label className="block space-y-1">
+        </Label>
+        <Label className="block space-y-1">
           <span>Description</span>
-          <textarea
+          <Textarea
             className={inputClassName}
             name="description"
             rows={4}
@@ -122,10 +128,10 @@ export default function AssignmentsPanel({
             disabled={busy}
             defaultValue={editing?.description}
           />
-        </label>
-        <label className="block space-y-1">
+        </Label>
+        <Label className="block space-y-1">
           <span>Due date</span>
-          <input
+          <Input
             className={inputClassName}
             name="dueDate"
             type="datetime-local"
@@ -133,7 +139,7 @@ export default function AssignmentsPanel({
             disabled={busy}
             defaultValue={editing ? toLocalInputValue(editing.dueDate) : ""}
           />
-        </label>
+        </Label>
         <div className="flex gap-2">
           <Button type="submit" disabled={busy}>
             {busy
@@ -183,6 +189,17 @@ export default function AssignmentsPanel({
               </Link>
             </h3>
             <p className="text-sm">Due {formatDue(assignment.dueDate)}</p>
+            <p className="text-sm text-muted-foreground">
+              {assignment.completedCount ?? 0} / {course.approvedCount} students
+              submitted · {assignment.submissionCount ?? 0} attempts ·{" "}
+              {assignment.gradedCount ?? 0} graded
+            </p>
+            <Link
+              href={`/dashboard/courses/${course._id}/assignments/${assignment._id}`}
+              className="inline-block text-sm font-medium text-primary hover:underline"
+            >
+              Evaluate submissions →
+            </Link>
             {assignment.description && (
               <p className="whitespace-pre-wrap">{assignment.description}</p>
             )}

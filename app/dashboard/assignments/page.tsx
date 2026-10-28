@@ -1,5 +1,6 @@
-import StudentWorkPage from "@/components/dashboard/student-work-page"
+import { redirect } from "next/navigation"
 
+// Course tools are accessed within a selected course.
 export default function Page() {
-  return <StudentWorkPage view="upcoming" />
+  redirect("/dashboard")
 }
