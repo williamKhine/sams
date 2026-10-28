@@ -8,6 +8,7 @@ import type { Id } from "./_generated/dataModel"
 import schema from "./schema"
 import { accessibleCourse } from "./courses"
 import { requireRole } from "./lib/auth"
+import { countAssignment } from "./lib/progress"
 
 const assignmentFields = {
   title: v.string(),
@@ -52,10 +53,12 @@ export const create = mutation({
   handler: async (ctx, args) => {
     const user = await requireRole(ctx, "instructor")
     const course = await requireOwnedCourse(ctx, user._id, args.courseId)
-    return await ctx.db.insert("assignments", {
+    const id = await ctx.db.insert("assignments", {
       courseId: course._id,
       ...validateFields(args),
     })
+    await countAssignment(ctx, (await ctx.db.get("assignments", id))!)
+    return id
   },
 })
 
@@ -80,6 +83,23 @@ export const remove = mutation({
     const assignment = await ctx.db.get("assignments", args.assignmentId)
     if (!assignment) throw new ConvexError("Assignment not found.")
     await requireOwnedCourse(ctx, user._id, assignment.courseId)
+    await countAssignment(ctx, assignment)
+    const course = await requireOwnedCourse(ctx, user._id, assignment.courseId)
+    await ctx.db.patch("courses", course._id, {
+      assignmentCount: Math.max(0, (course.assignmentCount ?? 0) - 1),
+      submissionCount: Math.max(
+        0,
+        (course.submissionCount ?? 0) - (assignment.submissionCount ?? 0)
+      ),
+      completedCount: Math.max(
+        0,
+        (course.completedCount ?? 0) - (assignment.completedCount ?? 0)
+      ),
+      gradedCount: Math.max(
+        0,
+        (course.gradedCount ?? 0) - (assignment.gradedCount ?? 0)
+      ),
+    })
     await ctx.db.delete("assignments", assignment._id)
     return null
   },
@@ -88,9 +108,14 @@ export const remove = mutation({
 export const forEnrolledCourse = query({
   args: { courseId: v.id("courses"), paginationOpts: paginationOptsValidator },
   returns: paginationResultValidator(
-    schema
-      .doc("assignments")
-      .extend({ submittedAt: v.union(v.number(), v.null()) })
+    schema.doc("assignments").extend({
+      submittedAt: v.union(v.number(), v.null()),
+      grade: v.union(v.number(), v.null()),
+      feedback: v.union(v.string(), v.null()),
+      evaluatedAt: v.union(v.number(), v.null()),
+      evaluatedSubmissionId: v.union(v.id("submissions"), v.null()),
+      latestSubmissionId: v.union(v.id("submissions"), v.null()),
+    })
   ),
   handler: async (ctx, args) => {
     const student = await requireRole(ctx, "student")
@@ -118,7 +143,21 @@ export const forEnrolledCourse = query({
           )
           .order("desc")
           .first()
-        return { ...assignment, submittedAt: latest?._creationTime ?? null }
+        const result = await ctx.db
+          .query("assignmentResults")
+          .withIndex("by_assignmentId_and_studentId", (q) =>
+            q.eq("assignmentId", assignment._id).eq("studentId", student._id)
+          )
+          .unique()
+        return {
+          ...assignment,
+          submittedAt: latest?._creationTime ?? null,
+          grade: result?.grade ?? null,
+          feedback: result?.feedback ?? null,
+          evaluatedAt: result?.evaluatedAt ?? null,
+          evaluatedSubmissionId: result?.evaluatedSubmissionId ?? null,
+          latestSubmissionId: latest?._id ?? null,
+        }
       })
     )
     return { ...result, page }

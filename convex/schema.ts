@@ -9,6 +9,10 @@ export default defineSchema({
     maxStudents: v.number(),
     active: v.boolean(),
     approvedCount: v.number(),
+    assignmentCount: v.optional(v.number()),
+    submissionCount: v.optional(v.number()),
+    completedCount: v.optional(v.number()),
+    gradedCount: v.optional(v.number()),
   })
     .index("by_instructorId", ["instructorId"])
     .index("by_instructorId_and_code", ["instructorId", "code"])
@@ -33,7 +37,12 @@ export default defineSchema({
     title: v.string(),
     description: v.string(),
     dueDate: v.number(),
+    statsCounted: v.optional(v.boolean()),
+    submissionCount: v.optional(v.number()),
+    completedCount: v.optional(v.number()),
+    gradedCount: v.optional(v.number()),
   })
+    .index("by_statsCounted", ["statsCounted"])
     .index("by_courseId_and_dueDate", ["courseId", "dueDate"])
     .index("by_dueDate", ["dueDate"]),
 
@@ -42,6 +51,7 @@ export default defineSchema({
     studentId: v.id("users"),
     storageId: v.id("_storage"),
     requestId: v.string(),
+    statsCounted: v.optional(v.boolean()),
     fileName: v.string(),
     size: v.number(),
     assignmentTitle: v.string(),
@@ -50,9 +60,22 @@ export default defineSchema({
     courseCode: v.string(),
     dueDate: v.number(),
   })
+    .index("by_statsCounted", ["statsCounted"])
     .index("by_studentId", ["studentId"])
+    .index("by_studentId_and_courseId", ["studentId", "courseId"])
     .index("by_studentId_and_requestId", ["studentId", "requestId"])
     .index("by_assignmentId_and_studentId", ["assignmentId", "studentId"]),
+
+  assignmentResults: defineTable({
+    assignmentId: v.id("assignments"),
+    courseId: v.id("courses"),
+    studentId: v.id("users"),
+    latestSubmissionId: v.id("submissions"),
+    evaluatedSubmissionId: v.optional(v.id("submissions")),
+    grade: v.optional(v.number()),
+    feedback: v.optional(v.string()),
+    evaluatedAt: v.optional(v.number()),
+  }).index("by_assignmentId_and_studentId", ["assignmentId", "studentId"]),
 
   users: defineTable({
     issuer: v.string(),

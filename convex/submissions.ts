@@ -13,6 +13,7 @@ import {
 import type { Id } from "./_generated/dataModel"
 import schema from "./schema"
 import { requireRole } from "./lib/auth"
+import { countSubmission } from "./lib/progress"
 
 export const MAX_SUBMISSION_BYTES = 25 * 1024 * 1024
 
@@ -106,7 +107,8 @@ export const save = internalMutation({
     })
     const submission = await ctx.db.get("submissions", id)
     if (!submission) throw new ConvexError("Could not save submission.")
-    return submission
+    await countSubmission(ctx, submission)
+    return (await ctx.db.get("submissions", id))!
   },
 })
 
@@ -135,6 +137,44 @@ export const forAssignment = query({
         result.page.map(async (s) => ({
           ...s,
           url: await ctx.storage.getUrl(s.storageId),
+        }))
+      ),
+    }
+  },
+})
+
+export const forCourse = query({
+  args: {
+    courseId: v.id("courses"),
+    paginationOpts: paginationOptsValidator,
+  },
+  returns: paginationResultValidator(submissionWithUrl),
+  handler: async (ctx, args) => {
+    const student = await requireRole(ctx, "student")
+    const course = await ctx.db.get("courses", args.courseId)
+    const enrollment = await ctx.db
+      .query("enrollments")
+      .withIndex("by_courseId_and_studentId", (q) =>
+        q.eq("courseId", args.courseId).eq("studentId", student._id)
+      )
+      .unique()
+    if (!course || enrollment?.status !== "approved")
+      throw new ConvexError(
+        "You must be enrolled in this course to view submission history."
+      )
+    const result = await ctx.db
+      .query("submissions")
+      .withIndex("by_studentId_and_courseId", (q) =>
+        q.eq("studentId", student._id).eq("courseId", args.courseId)
+      )
+      .order("desc")
+      .paginate(args.paginationOpts)
+    return {
+      ...result,
+      page: await Promise.all(
+        result.page.map(async (submission) => ({
+          ...submission,
+          url: await ctx.storage.getUrl(submission.storageId),
         }))
       ),
     }

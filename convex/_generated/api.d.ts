@@ -11,8 +11,11 @@
 import type * as assignments from "../assignments.js";
 import type * as courses from "../courses.js";
 import type * as enrollments from "../enrollments.js";
+import type * as grades from "../grades.js";
 import type * as http from "../http.js";
 import type * as lib_auth from "../lib/auth.js";
+import type * as lib_progress from "../lib/progress.js";
+import type * as progress from "../progress.js";
 import type * as submissions from "../submissions.js";
 import type * as users from "../users.js";
 
@@ -26,8 +29,11 @@ declare const fullApi: ApiFromModules<{
   assignments: typeof assignments;
   courses: typeof courses;
   enrollments: typeof enrollments;
+  grades: typeof grades;
   http: typeof http;
   "lib/auth": typeof lib_auth;
+  "lib/progress": typeof lib_progress;
+  progress: typeof progress;
   submissions: typeof submissions;
   users: typeof users;
 }>;
