@@ -5,7 +5,7 @@ import { useMutation, usePaginatedQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import type { Doc, Id } from "@/convex/_generated/dataModel"
 import { Button } from "@/components/ui/button"
-import AssignmentsPanel from "./assignments-panel"
+import Link from "next/link"
 import { courseError, inputClassName, LoadMore } from "./course-ui"
 
 export default function InstructorDashboard({ name }: { name: string | null }) {
@@ -16,20 +16,9 @@ export default function InstructorDashboard({ name }: { name: string | null }) {
   )
   const create = useMutation(api.courses.create)
   const setActive = useMutation(api.courses.setActive)
-  const [selectedCourse, setSelectedCourse] = useState<Id<"courses"> | null>(
-    null
-  )
-  const [assignmentsCourse, setAssignmentsCourse] =
-    useState<Id<"courses"> | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
-  const courseToReview = courses.results.find(
-    (course) => course._id === selectedCourse
-  )
-  const courseForAssignments = courses.results.find(
-    (course) => course._id === assignmentsCourse
-  )
 
   async function createCourse(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -140,7 +129,14 @@ export default function InstructorDashboard({ name }: { name: string | null }) {
               key={course._id}
               className="space-y-3 rounded-xl border p-5"
             >
-              <h3 className="text-lg font-semibold">{course.name}</h3>
+              <h3 className="text-lg font-semibold">
+                <Link
+                  className="hover:underline"
+                  href={`/dashboard/courses/${course._id}`}
+                >
+                  {course.name}
+                </Link>
+              </h3>
               <p>
                 {course.code} · {course.active ? "Active" : "Inactive"}
               </p>
@@ -155,40 +151,29 @@ export default function InstructorDashboard({ name }: { name: string | null }) {
                 >
                   {course.active ? "Deactivate" : "Activate"}
                 </Button>
-                <Button
-                  variant="secondary"
-                  onClick={() => setSelectedCourse(course._id)}
-                  aria-pressed={selectedCourse === course._id}
+                <Link
+                  className="text-primary hover:underline"
+                  href={`/dashboard/courses/${course._id}`}
                 >
-                  Review requests
-                </Button>
-                <Button
-                  variant="secondary"
-                  onClick={() => setAssignmentsCourse(course._id)}
-                  aria-pressed={assignmentsCourse === course._id}
+                  Open course
+                </Link>
+                <Link
+                  className="text-primary hover:underline"
+                  href={`/dashboard/courses/${course._id}/assignments`}
                 >
                   Assignments
-                </Button>
+                </Link>
               </div>
             </article>
           ))}
         </div>
         <LoadMore status={courses.status} loadMore={courses.loadMore} />
       </div>
-      {courseToReview && (
-        <PendingRequests key={courseToReview._id} course={courseToReview} />
-      )}
-      {courseForAssignments && (
-        <AssignmentsPanel
-          key={courseForAssignments._id}
-          course={courseForAssignments}
-        />
-      )}
     </section>
   )
 }
 
-function PendingRequests({ course }: { course: Doc<"courses"> }) {
+export function PendingRequests({ course }: { course: Doc<"courses"> }) {
   const requests = usePaginatedQuery(
     api.enrollments.pending,
     { courseId: course._id },

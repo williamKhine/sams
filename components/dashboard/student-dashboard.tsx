@@ -6,7 +6,7 @@ import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
 import { Button } from "@/components/ui/button"
 import { courseError, LoadMore } from "./course-ui"
-import StudentAssignments from "./student-assignments"
+import Link from "next/link"
 
 const statusLabel = {
   pending: "Awaiting instructor approval",
@@ -26,7 +26,6 @@ export default function StudentDashboard({ name }: { name: string | null }) {
     { initialNumItems: 20 }
   )
   const request = useMutation(api.enrollments.request)
-  const [openCourse, setOpenCourse] = useState<Id<"courses"> | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
@@ -73,7 +72,18 @@ export default function StudentDashboard({ name }: { name: string | null }) {
               key={course._id}
               className="space-y-3 rounded-xl border p-5"
             >
-              <h3 className="text-lg font-semibold">{course.name}</h3>
+              <h3 className="text-lg font-semibold">
+                {course.enrollmentStatus === "approved" ? (
+                  <Link
+                    className="hover:underline"
+                    href={`/dashboard/courses/${course._id}`}
+                  >
+                    {course.name}
+                  </Link>
+                ) : (
+                  course.name
+                )}
+              </h3>
               <p>
                 {course.code}
                 {course.instructorName ? ` · ${course.instructorName}` : ""}
@@ -111,33 +121,38 @@ export default function StudentDashboard({ name }: { name: string | null }) {
             className="space-y-1 rounded-xl border p-4"
           >
             <h3 className="font-semibold">
-              {enrollment.courseName} · {enrollment.courseCode}
+              {enrollment.status === "approved" ? (
+                <Link
+                  className="hover:underline"
+                  href={`/dashboard/courses/${enrollment.courseId}`}
+                >
+                  {enrollment.courseName} · {enrollment.courseCode}
+                </Link>
+              ) : (
+                <>
+                  {enrollment.courseName} · {enrollment.courseCode}
+                </>
+              )}
             </h3>
             <p>
               {statusLabel[enrollment.status]}
               {!enrollment.courseActive ? " · Course inactive" : ""}
             </p>
             {enrollment.status === "approved" && (
-              <>
-                <Button
-                  variant="secondary"
-                  aria-expanded={openCourse === enrollment.courseId}
-                  onClick={() =>
-                    setOpenCourse(
-                      openCourse === enrollment.courseId
-                        ? null
-                        : enrollment.courseId
-                    )
-                  }
+              <div className="flex flex-wrap gap-4 pt-2">
+                <Link
+                  className="text-primary hover:underline"
+                  href={`/dashboard/courses/${enrollment.courseId}`}
                 >
-                  {openCourse === enrollment.courseId
-                    ? "Hide assignments"
-                    : "View assignments"}
-                </Button>
-                {openCourse === enrollment.courseId && (
-                  <StudentAssignments courseId={enrollment.courseId} />
-                )}
-              </>
+                  Open course
+                </Link>
+                <Link
+                  className="text-primary hover:underline"
+                  href={`/dashboard/courses/${enrollment.courseId}/assignments`}
+                >
+                  Assignments
+                </Link>
+              </div>
             )}
           </article>
         ))}

@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, type FormEvent } from "react"
+import Link from "next/link"
 import { useMutation, usePaginatedQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import type { Doc } from "@/convex/_generated/dataModel"
@@ -173,7 +174,14 @@ export default function AssignmentsPanel({
             key={assignment._id}
             className="space-y-2 rounded-lg border p-4"
           >
-            <h3 className="font-semibold">{assignment.title}</h3>
+            <h3 className="font-semibold">
+              <Link
+                className="hover:underline"
+                href={`/dashboard/courses/${course._id}/assignments/${assignment._id}`}
+              >
+                {assignment.title}
+              </Link>
+            </h3>
             <p className="text-sm">Due {formatDue(assignment.dueDate)}</p>
             {assignment.description && (
               <p className="whitespace-pre-wrap">{assignment.description}</p>
