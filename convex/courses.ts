@@ -112,3 +112,33 @@ export const setActive = mutation({
     return null
   },
 })
+
+// Shared by the course and assignment detail queries.
+export async function accessibleCourse(
+  ctx: import("./_generated/server").QueryCtx,
+  courseId: import("./_generated/dataModel").Id<"courses">,
+  role: "instructor" | "student"
+) {
+  const user = await requireRole(ctx, role)
+  const course = await ctx.db.get("courses", courseId)
+  if (!course) return null
+  if (role === "instructor") {
+    return course.instructorId === user._id ? course : null
+  }
+  const enrollment = await ctx.db
+    .query("enrollments")
+    .withIndex("by_courseId_and_studentId", (q) =>
+      q.eq("courseId", courseId).eq("studentId", user._id)
+    )
+    .unique()
+  return enrollment?.status === "approved" ? course : null
+}
+
+export const get = query({
+  args: {
+    courseId: v.id("courses"),
+    role: v.union(v.literal("instructor"), v.literal("student")),
+  },
+  returns: v.union(schema.doc("courses"), v.null()),
+  handler: async (ctx, args) => accessibleCourse(ctx, args.courseId, args.role),
+})

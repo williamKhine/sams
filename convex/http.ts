@@ -1,5 +1,8 @@
 import { verifyWebhook } from "@clerk/backend/webhooks"
 import { httpRouter } from "convex/server"
+import { ConvexError } from "convex/values"
+import type { Id } from "./_generated/dataModel"
+import { MAX_SUBMISSION_BYTES } from "./submissions"
 import { internal } from "./_generated/api"
 import { httpAction } from "./_generated/server"
 
@@ -60,6 +63,109 @@ http.route({
     }
 
     return new Response(null, { status: 204 })
+  }),
+})
+
+const submissionCors = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers":
+    "Authorization, Content-Type, X-File-Name, X-Submission-Key",
+  "Access-Control-Max-Age": "86400",
+}
+
+http.route({
+  path: "/assignment-submissions",
+  method: "OPTIONS",
+  handler: httpAction(
+    async () => new Response(null, { status: 204, headers: submissionCors })
+  ),
+})
+
+http.route({
+  path: "/assignment-submissions",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    const respond = (body: object, status = 200) =>
+      new Response(JSON.stringify(body), {
+        status,
+        headers: { ...submissionCors, "Content-Type": "application/json" },
+      })
+    let storageId: Id<"_storage"> | undefined
+    try {
+      if (!request.headers.get("Authorization"))
+        return respond({ error: "Please sign in to submit work." }, 401)
+      const assignmentId = new URL(request.url).searchParams.get(
+        "assignmentId"
+      ) as Id<"assignments"> | null
+      const requestId = request.headers.get("X-Submission-Key")
+      const fileName = decodeURIComponent(
+        request.headers.get("X-File-Name") ?? ""
+      )
+      if (!assignmentId || !requestId || !fileName)
+        return respond({ error: "Select an assignment and a file." }, 400)
+      const previous = await ctx.runQuery(
+        internal.submissions.authorizeUpload,
+        { assignmentId, requestId }
+      )
+      if (previous) return respond({ submissionId: previous._id })
+      if (
+        !fileName.trim() ||
+        fileName.length > 255 ||
+        /[\x00-\x1f\x7f]/.test(fileName)
+      )
+        return respond(
+          {
+            error:
+              "Please select a file with a valid name (up to 255 characters).",
+          },
+          400
+        )
+      if (Number(request.headers.get("Content-Length")) > MAX_SUBMISSION_BYTES)
+        return respond({ error: "Files must be 25 MB or smaller." }, 413)
+      const reader = request.body?.getReader()
+      if (!reader) return respond({ error: "Select a non-empty file." }, 400)
+      const chunks: ArrayBuffer[] = []
+      let size = 0
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        size += value.byteLength
+        if (size > MAX_SUBMISSION_BYTES) {
+          await reader.cancel()
+          return respond({ error: "Files must be 25 MB or smaller." }, 413)
+        }
+        chunks.push(new Uint8Array(value).buffer)
+      }
+      if (size === 0) return respond({ error: "Select a non-empty file." }, 400)
+      storageId = await ctx.storage.store(
+        new Blob(chunks, {
+          type:
+            request.headers.get("Content-Type") ?? "application/octet-stream",
+        })
+      )
+      // Recheck enrollment and assignment existence in the transaction that saves the receipt.
+      const saved = await ctx.runMutation(internal.submissions.save, {
+        assignmentId,
+        requestId,
+        fileName,
+        storageId,
+      })
+      if (saved.storageId !== storageId) await ctx.storage.delete(storageId)
+      storageId = undefined
+      return respond({ submissionId: saved._id })
+    } catch (error) {
+      if (storageId) await ctx.storage.delete(storageId)
+      return respond(
+        {
+          error:
+            error instanceof ConvexError && typeof error.data === "string"
+              ? error.data
+              : "Upload failed. Please check your connection and try again.",
+        },
+        400
+      )
+    }
   }),
 })
 

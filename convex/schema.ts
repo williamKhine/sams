@@ -33,12 +33,26 @@ export default defineSchema({
     title: v.string(),
     description: v.string(),
     dueDate: v.number(),
-  }).index("by_courseId_and_dueDate", ["courseId", "dueDate"]),
+  })
+    .index("by_courseId_and_dueDate", ["courseId", "dueDate"])
+    .index("by_dueDate", ["dueDate"]),
 
-  tasks: defineTable({
-    isCompleted: v.boolean(),
-    text: v.string(),
-  }),
+  submissions: defineTable({
+    assignmentId: v.id("assignments"),
+    studentId: v.id("users"),
+    storageId: v.id("_storage"),
+    requestId: v.string(),
+    fileName: v.string(),
+    size: v.number(),
+    assignmentTitle: v.string(),
+    courseId: v.id("courses"),
+    courseName: v.string(),
+    courseCode: v.string(),
+    dueDate: v.number(),
+  })
+    .index("by_studentId", ["studentId"])
+    .index("by_studentId_and_requestId", ["studentId", "requestId"])
+    .index("by_assignmentId_and_studentId", ["assignmentId", "studentId"]),
 
   users: defineTable({
     issuer: v.string(),

@@ -6,6 +6,7 @@ import {
 import { mutation, query, type MutationCtx } from "./_generated/server"
 import type { Id } from "./_generated/dataModel"
 import schema from "./schema"
+import { accessibleCourse } from "./courses"
 import { requireRole } from "./lib/auth"
 
 const assignmentFields = {
@@ -86,7 +87,11 @@ export const remove = mutation({
 
 export const forEnrolledCourse = query({
   args: { courseId: v.id("courses"), paginationOpts: paginationOptsValidator },
-  returns: paginationResultValidator(schema.doc("assignments")),
+  returns: paginationResultValidator(
+    schema
+      .doc("assignments")
+      .extend({ submittedAt: v.union(v.number(), v.null()) })
+  ),
   handler: async (ctx, args) => {
     const student = await requireRole(ctx, "student")
     const enrollment = await ctx.db
@@ -97,13 +102,26 @@ export const forEnrolledCourse = query({
       .unique()
     if (!enrollment || enrollment.status !== "approved")
       throw new ConvexError("You are not enrolled in this course.")
-    return await ctx.db
+    const result = await ctx.db
       .query("assignments")
       .withIndex("by_courseId_and_dueDate", (q) =>
         q.eq("courseId", args.courseId)
       )
       .order("asc")
       .paginate(args.paginationOpts)
+    const page = await Promise.all(
+      result.page.map(async (assignment) => {
+        const latest = await ctx.db
+          .query("submissions")
+          .withIndex("by_assignmentId_and_studentId", (q) =>
+            q.eq("assignmentId", assignment._id).eq("studentId", student._id)
+          )
+          .order("desc")
+          .first()
+        return { ...assignment, submittedAt: latest?._creationTime ?? null }
+      })
+    )
+    return { ...result, page }
   },
 })
 
@@ -141,5 +159,61 @@ export const listByCourse = query({
       .withIndex("by_courseId_and_dueDate", (q) => q.eq("courseId", course._id))
       .order("asc")
       .paginate(args.paginationOpts)
+  },
+})
+
+export const get = query({
+  args: {
+    courseId: v.id("courses"),
+    assignmentId: v.id("assignments"),
+    role: v.union(v.literal("instructor"), v.literal("student")),
+  },
+  returns: v.union(schema.doc("assignments"), v.null()),
+  handler: async (ctx, args) => {
+    const course = await accessibleCourse(ctx, args.courseId, args.role)
+    if (!course) return null
+    const assignment = await ctx.db.get("assignments", args.assignmentId)
+    return assignment?.courseId === course._id ? assignment : null
+  },
+})
+
+export const upcoming = query({
+  args: { now: v.number(), paginationOpts: paginationOptsValidator },
+  returns: paginationResultValidator(
+    schema
+      .doc("assignments")
+      .extend({ courseName: v.string(), courseCode: v.string() })
+  ),
+  handler: async (ctx, args) => {
+    const student = await requireRole(ctx, "student")
+    if (!Number.isFinite(args.now)) throw new ConvexError("Invalid date.")
+    const result = await ctx.db
+      .query("assignments")
+      .withIndex("by_dueDate", (q) => q.gte("dueDate", args.now))
+      .order("asc")
+      .paginate(args.paginationOpts)
+    const rows = await Promise.all(
+      result.page.map(async (assignment) => {
+        const enrollment = await ctx.db
+          .query("enrollments")
+          .withIndex("by_courseId_and_studentId", (q) =>
+            q.eq("courseId", assignment.courseId).eq("studentId", student._id)
+          )
+          .unique()
+        if (enrollment?.status !== "approved") return null
+        const submitted = await ctx.db
+          .query("submissions")
+          .withIndex("by_assignmentId_and_studentId", (q) =>
+            q.eq("assignmentId", assignment._id).eq("studentId", student._id)
+          )
+          .first()
+        if (submitted) return null
+        const course = await ctx.db.get("courses", assignment.courseId)
+        return course
+          ? { ...assignment, courseName: course.name, courseCode: course.code }
+          : null
+      })
+    )
+    return { ...result, page: rows.filter((row) => row !== null) }
   },
 })
