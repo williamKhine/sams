@@ -2,7 +2,7 @@ import { verifyWebhook } from "@clerk/backend/webhooks"
 import { httpRouter } from "convex/server"
 import { ConvexError } from "convex/values"
 import type { Id } from "./_generated/dataModel"
-import { MAX_SUBMISSION_BYTES } from "./submissions"
+import { MAX_SUBMISSION_BYTES, validateFileName } from "./lib/submissions"
 import { internal } from "./_generated/api"
 import { httpAction } from "./_generated/server"
 
@@ -109,18 +109,7 @@ http.route({
         { assignmentId, requestId }
       )
       if (previous) return respond({ submissionId: previous._id })
-      if (
-        !fileName.trim() ||
-        fileName.length > 255 ||
-        /[\x00-\x1f\x7f]/.test(fileName)
-      )
-        return respond(
-          {
-            error:
-              "Please select a file with a valid name (up to 255 characters).",
-          },
-          400
-        )
+      validateFileName(fileName)
       if (Number(request.headers.get("Content-Length")) > MAX_SUBMISSION_BYTES)
         return respond({ error: "Files must be 25 MB or smaller." }, 413)
       const reader = request.body?.getReader()

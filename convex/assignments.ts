@@ -3,10 +3,14 @@ import {
   paginationOptsValidator,
   paginationResultValidator,
 } from "convex/server"
-import { mutation, query, type MutationCtx } from "./_generated/server"
-import type { Id } from "./_generated/dataModel"
+import { mutation, query } from "./_generated/server"
 import schema from "./schema"
-import { accessibleCourse } from "./courses"
+import {
+  accessibleCourse,
+  getEnrollment,
+  requireEnrollment,
+  requireOwnedCourse,
+} from "./lib/access"
 import { requireRole } from "./lib/auth"
 import { countAssignment } from "./lib/progress"
 
@@ -34,17 +38,6 @@ function validateFields(args: {
   if (!Number.isFinite(args.dueDate))
     throw new ConvexError("Please provide a valid due date.")
   return { title, description, dueDate: args.dueDate }
-}
-
-async function requireOwnedCourse(
-  ctx: MutationCtx,
-  instructorId: Id<"users">,
-  courseId: Id<"courses">
-) {
-  const course = await ctx.db.get("courses", courseId)
-  if (!course || course.instructorId !== instructorId)
-    throw new ConvexError("Course not found.")
-  return course
 }
 
 export const create = mutation({
@@ -119,14 +112,7 @@ export const forEnrolledCourse = query({
   ),
   handler: async (ctx, args) => {
     const student = await requireRole(ctx, "student")
-    const enrollment = await ctx.db
-      .query("enrollments")
-      .withIndex("by_courseId_and_studentId", (q) =>
-        q.eq("courseId", args.courseId).eq("studentId", student._id)
-      )
-      .unique()
-    if (!enrollment || enrollment.status !== "approved")
-      throw new ConvexError("You are not enrolled in this course.")
+    await requireEnrollment(ctx, args.courseId, student._id)
     const result = await ctx.db
       .query("assignments")
       .withIndex("by_courseId_and_dueDate", (q) =>
@@ -171,12 +157,7 @@ export const getForStudent = query({
     const student = await requireRole(ctx, "student")
     const assignment = await ctx.db.get("assignments", args.assignmentId)
     const enrollment = assignment
-      ? await ctx.db
-          .query("enrollments")
-          .withIndex("by_courseId_and_studentId", (q) =>
-            q.eq("courseId", assignment.courseId).eq("studentId", student._id)
-          )
-          .unique()
+      ? await getEnrollment(ctx, assignment.courseId, student._id)
       : null
     if (!assignment || enrollment?.status !== "approved")
       throw new ConvexError("Assignment not found.")
@@ -190,9 +171,7 @@ export const listByCourse = query({
   returns: paginationResultValidator(schema.doc("assignments")),
   handler: async (ctx, args) => {
     const user = await requireRole(ctx, "instructor")
-    const course = await ctx.db.get("courses", args.courseId)
-    if (!course || course.instructorId !== user._id)
-      throw new ConvexError("Course not found.")
+    const course = await requireOwnedCourse(ctx, user._id, args.courseId)
     return await ctx.db
       .query("assignments")
       .withIndex("by_courseId_and_dueDate", (q) => q.eq("courseId", course._id))
@@ -233,12 +212,11 @@ export const upcoming = query({
       .paginate(args.paginationOpts)
     const rows = await Promise.all(
       result.page.map(async (assignment) => {
-        const enrollment = await ctx.db
-          .query("enrollments")
-          .withIndex("by_courseId_and_studentId", (q) =>
-            q.eq("courseId", assignment.courseId).eq("studentId", student._id)
-          )
-          .unique()
+        const enrollment = await getEnrollment(
+          ctx,
+          assignment.courseId,
+          student._id
+        )
         if (enrollment?.status !== "approved") return null
         const submitted = await ctx.db
           .query("submissions")

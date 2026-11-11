@@ -6,6 +6,7 @@ import {
 import { mutation, query } from "./_generated/server"
 import schema from "./schema"
 import { requireRole } from "./lib/auth"
+import { getEnrollment, requireOwnedCourse } from "./lib/access"
 
 export const request = mutation({
   args: { courseId: v.id("courses") },
@@ -22,12 +23,7 @@ export const request = mutation({
       instructor.role !== "instructor"
     )
       throw new ConvexError("This course is not open for enrollment.")
-    const existing = await ctx.db
-      .query("enrollments")
-      .withIndex("by_courseId_and_studentId", (q) =>
-        q.eq("courseId", course._id).eq("studentId", student._id)
-      )
-      .unique()
+    const existing = await getEnrollment(ctx, course._id, student._id)
     if (existing) {
       if (existing.status === "rejected")
         throw new ConvexError("Your request for this course was rejected.")
@@ -52,9 +48,7 @@ export const pending = query({
   ),
   handler: async (ctx, args) => {
     const instructor = await requireRole(ctx, "instructor")
-    const course = await ctx.db.get("courses", args.courseId)
-    if (!course || course.instructorId !== instructor._id)
-      throw new ConvexError("Course not found.")
+    const course = await requireOwnedCourse(ctx, instructor._id, args.courseId)
     const result = await ctx.db
       .query("enrollments")
       .withIndex("by_courseId_and_status", (q) =>
@@ -84,11 +78,13 @@ export const decide = mutation({
   handler: async (ctx, args) => {
     const instructor = await requireRole(ctx, "instructor")
     const enrollment = await ctx.db.get("enrollments", args.enrollmentId)
-    const course = enrollment
-      ? await ctx.db.get("courses", enrollment.courseId)
-      : null
-    if (!enrollment || !course || course.instructorId !== instructor._id)
-      throw new ConvexError("Enrollment request not found.")
+    if (!enrollment) throw new ConvexError("Enrollment request not found.")
+    const course = await requireOwnedCourse(
+      ctx,
+      instructor._id,
+      enrollment.courseId,
+      "Enrollment request not found."
+    )
     if (enrollment.status === args.decision) return null
     if (enrollment.status !== "pending")
       throw new ConvexError("This request has already been decided.")
@@ -119,13 +115,11 @@ export const decide = mutation({
 export const mine = query({
   args: { paginationOpts: paginationOptsValidator },
   returns: paginationResultValidator(
-    schema
-      .doc("enrollments")
-      .extend({
-        courseName: v.string(),
-        courseCode: v.string(),
-        courseActive: v.boolean(),
-      })
+    schema.doc("enrollments").extend({
+      courseName: v.string(),
+      courseCode: v.string(),
+      courseActive: v.boolean(),
+    })
   ),
   handler: async (ctx, args) => {
     const student = await requireRole(ctx, "student")

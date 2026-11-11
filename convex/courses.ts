@@ -6,6 +6,11 @@ import {
 import { query, mutation } from "./_generated/server"
 import schema from "./schema"
 import { requireRole } from "./lib/auth"
+import {
+  accessibleCourse,
+  getEnrollment,
+  requireOwnedCourse,
+} from "./lib/access"
 
 export const create = mutation({
   args: {
@@ -81,12 +86,7 @@ export const active = query({
       .paginate(args.paginationOpts)
     const page = await Promise.all(
       result.page.map(async (course) => {
-        const enrollment = await ctx.db
-          .query("enrollments")
-          .withIndex("by_courseId_and_studentId", (q) =>
-            q.eq("courseId", course._id).eq("studentId", user._id)
-          )
-          .unique()
+        const enrollment = await getEnrollment(ctx, course._id, user._id)
         const instructor = await ctx.db.get("users", course.instructorId)
         return {
           ...course,
@@ -105,34 +105,11 @@ export const setActive = mutation({
   returns: v.null(),
   handler: async (ctx, args) => {
     const user = await requireRole(ctx, "instructor")
-    const course = await ctx.db.get("courses", args.courseId)
-    if (!course || course.instructorId !== user._id)
-      throw new ConvexError("Course not found.")
+    const course = await requireOwnedCourse(ctx, user._id, args.courseId)
     await ctx.db.patch("courses", course._id, { active: args.active })
     return null
   },
 })
-
-// Shared by the course and assignment detail queries.
-export async function accessibleCourse(
-  ctx: import("./_generated/server").QueryCtx,
-  courseId: import("./_generated/dataModel").Id<"courses">,
-  role: "instructor" | "student"
-) {
-  const user = await requireRole(ctx, role)
-  const course = await ctx.db.get("courses", courseId)
-  if (!course) return null
-  if (role === "instructor") {
-    return course.instructorId === user._id ? course : null
-  }
-  const enrollment = await ctx.db
-    .query("enrollments")
-    .withIndex("by_courseId_and_studentId", (q) =>
-      q.eq("courseId", courseId).eq("studentId", user._id)
-    )
-    .unique()
-  return enrollment?.status === "approved" ? course : null
-}
 
 export const get = query({
   args: {

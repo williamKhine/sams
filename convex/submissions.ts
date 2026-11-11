@@ -13,9 +13,13 @@ import {
 import type { Id } from "./_generated/dataModel"
 import schema from "./schema"
 import { requireRole } from "./lib/auth"
+import { getEnrollment } from "./lib/access"
+import {
+  MAX_SUBMISSION_BYTES,
+  getSubmissionForRequest,
+  validateFileName,
+} from "./lib/submissions"
 import { countSubmission } from "./lib/progress"
-
-export const MAX_SUBMISSION_BYTES = 25 * 1024 * 1024
 
 async function requireAssignment(
   ctx: QueryCtx | MutationCtx,
@@ -25,12 +29,7 @@ async function requireAssignment(
   const assignment = await ctx.db.get("assignments", assignmentId)
   if (!assignment) throw new ConvexError("Assignment unavailable.")
   const course = await ctx.db.get("courses", assignment.courseId)
-  const enrollment = await ctx.db
-    .query("enrollments")
-    .withIndex("by_courseId_and_studentId", (q) =>
-      q.eq("courseId", assignment.courseId).eq("studentId", student._id)
-    )
-    .unique()
+  const enrollment = await getEnrollment(ctx, assignment.courseId, student._id)
   if (!course || enrollment?.status !== "approved")
     throw new ConvexError("You must be enrolled in this course to submit work.")
   return { student, assignment, course }
@@ -42,17 +41,12 @@ export const authorizeUpload = internalQuery({
   returns: v.union(schema.doc("submissions"), v.null()),
   handler: async (ctx, args) => {
     const { student } = await requireAssignment(ctx, args.assignmentId)
-    if (!/^[a-zA-Z0-9-]{16,80}$/.test(args.requestId))
-      throw new ConvexError("Invalid submission request.")
-    const existing = await ctx.db
-      .query("submissions")
-      .withIndex("by_studentId_and_requestId", (q) =>
-        q.eq("studentId", student._id).eq("requestId", args.requestId)
-      )
-      .unique()
-    if (existing && existing.assignmentId !== args.assignmentId)
-      throw new ConvexError("Invalid submission request.")
-    return existing
+    return await getSubmissionForRequest(
+      ctx,
+      student._id,
+      args.assignmentId,
+      args.requestId
+    )
   },
 })
 
@@ -69,24 +63,14 @@ export const save = internalMutation({
       ctx,
       args.assignmentId
     )
-    if (!/^[a-zA-Z0-9-]{16,80}$/.test(args.requestId))
-      throw new ConvexError("Invalid submission request.")
-    const existing = await ctx.db
-      .query("submissions")
-      .withIndex("by_studentId_and_requestId", (q) =>
-        q.eq("studentId", student._id).eq("requestId", args.requestId)
-      )
-      .unique()
-    if (existing) {
-      if (existing.assignmentId !== assignment._id)
-        throw new ConvexError("Invalid submission request.")
-      return existing
-    }
-    const fileName = args.fileName.trim()
-    if (!fileName || fileName.length > 255 || /[\x00-\x1f\x7f]/.test(fileName))
-      throw new ConvexError(
-        "Please select a file with a valid name (up to 255 characters)."
-      )
+    const existing = await getSubmissionForRequest(
+      ctx,
+      student._id,
+      assignment._id,
+      args.requestId
+    )
+    if (existing) return existing
+    const fileName = validateFileName(args.fileName)
     const metadata = await ctx.db.system.get("_storage", args.storageId)
     if (
       !metadata ||
@@ -152,12 +136,7 @@ export const forCourse = query({
   handler: async (ctx, args) => {
     const student = await requireRole(ctx, "student")
     const course = await ctx.db.get("courses", args.courseId)
-    const enrollment = await ctx.db
-      .query("enrollments")
-      .withIndex("by_courseId_and_studentId", (q) =>
-        q.eq("courseId", args.courseId).eq("studentId", student._id)
-      )
-      .unique()
+    const enrollment = await getEnrollment(ctx, args.courseId, student._id)
     if (!course || enrollment?.status !== "approved")
       throw new ConvexError(
         "You must be enrolled in this course to view submission history."
