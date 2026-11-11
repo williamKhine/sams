@@ -1,20 +1,7 @@
 "use client"
 
-import { useEffect, useState } from "react"
 import { Badge } from "@/components/ui/badge"
 import { deadlineLabel } from "@/lib/assignment-status"
-
-export function useAssignmentClock() {
-  const [now, setNow] = useState(() => Math.floor(Date.now() / 60000) * 60000)
-  useEffect(() => {
-    const timer = setInterval(
-      () => setNow(Math.floor(Date.now() / 60000) * 60000),
-      60000
-    )
-    return () => clearInterval(timer)
-  }, [])
-  return now
-}
 
 export function AssignmentStatus({
   submittedAt,

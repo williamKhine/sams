@@ -1,5 +1,7 @@
 "use client"
 
+import { courseRoutes } from "@/lib/routes"
+
 import {
   Table,
   TableHeader,
@@ -13,9 +15,11 @@ import { usePaginatedQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
 import Link from "next/link"
-import { EmptyState } from "./learning-ui"
-import { formatDue, LoadMore } from "./course-ui"
-import { AssignmentStatus, useAssignmentClock } from "./assignment-status"
+import { EmptyState } from "@/components/shared/learning-ui"
+import { formatDue } from "@/lib/format-date"
+import { LoadMore } from "@/components/shared/load-more"
+import { AssignmentStatus } from "@/components/assignments/assignment-status"
+import { useAssignmentClock } from "@/components/assignments/use-assignment-clock"
 
 export default function StudentAssignments({
   courseId,
@@ -71,7 +75,7 @@ export default function StudentAssignments({
                   <TableCell className="p-4">
                     <Link
                       className="font-medium text-primary hover:underline"
-                      href={`/dashboard/courses/${courseId}/assignments/${assignment._id}`}
+                      href={courseRoutes(courseId).assignment(assignment._id)}
                     >
                       {assignment.title}
                     </Link>
@@ -100,7 +104,7 @@ export default function StudentAssignments({
                     {assignment.evaluatedAt !== null && (
                       <Link
                         className="mt-1 inline-block text-xs text-primary hover:underline"
-                        href={`/dashboard/courses/${courseId}/assignments/${assignment._id}`}
+                        href={courseRoutes(courseId).assignment(assignment._id)}
                       >
                         View feedback
                       </Link>

@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import { courseRoutes } from "@/lib/routes"
 import { useParams, usePathname } from "next/navigation"
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
@@ -18,9 +19,8 @@ export default function DashboardNavigation({
 }) {
   const pathname = usePathname()
   const { courseId } = useParams<{ courseId?: string }>()
-  const courseUrl = courseId
-    ? `/dashboard/courses/${encodeURIComponent(courseId)}`
-    : null
+  const routes = courseId ? courseRoutes(courseId) : null
+  const courseUrl = routes?.home
   const links = [
     {
       href: "/dashboard",
@@ -28,33 +28,35 @@ export default function DashboardNavigation({
       icon: BookOpen01Icon,
       active: !courseUrl,
     },
-    ...(courseUrl
+    ...(routes
       ? [
           {
-            href: courseUrl,
+            href: routes.home,
             label: "Course home",
             icon: Home01Icon,
             active: pathname === courseUrl,
           },
           {
-            href: `${courseUrl}/assignments`,
+            href: routes.assignments,
             label: "Assignments",
             icon: Folder01Icon,
-            active: pathname.startsWith(`${courseUrl}/assignments`),
+            active:
+              pathname === routes.assignments ||
+              pathname.startsWith(`${routes.assignments}/`),
           },
           ...(role === "student"
             ? [
                 {
-                  href: `${courseUrl}/grades`,
+                  href: routes.grades,
                   label: "Grades",
                   icon: Mortarboard01Icon,
-                  active: pathname === `${courseUrl}/grades`,
+                  active: pathname === routes.grades,
                 },
                 {
-                  href: `${courseUrl}/submissions`,
+                  href: routes.submissions,
                   label: "Submission history",
                   icon: Clock01Icon,
-                  active: pathname === `${courseUrl}/submissions`,
+                  active: pathname === routes.submissions,
                 },
               ]
             : []),

@@ -1,42 +1,13 @@
 "use client"
 
-import { Component, type ReactNode } from "react"
 import { useQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
-import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { formatDue } from "./course-ui"
+import { GradesErrorBoundary } from "./grades-error-boundary"
 
-export class GradesErrorBoundary extends Component<
-  { children: ReactNode },
-  { failed: boolean }
-> {
-  state = { failed: false }
-
-  static getDerivedStateFromError() {
-    return { failed: true }
-  }
-
-  render() {
-    if (this.state.failed)
-      return (
-        <div className="space-y-3 rounded-lg border border-destructive/30 p-5">
-          <p role="alert" className="text-sm text-destructive">
-            Unable to load grades and feedback. Please try again.
-          </p>
-          <Button
-            variant="outline"
-            onClick={() => this.setState({ failed: false })}
-          >
-            Try again
-          </Button>
-        </div>
-      )
-    return this.props.children
-  }
-}
+import { formatDue } from "@/lib/format-date"
 
 export default function StudentFeedback({
   assignmentId,

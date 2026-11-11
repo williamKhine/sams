@@ -1,5 +1,7 @@
 "use client"
 
+import { courseRoutes } from "@/lib/routes"
+
 import Link from "next/link"
 import { usePaginatedQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
@@ -13,9 +15,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { EmptyState } from "./learning-ui"
-import { formatDue, LoadMore } from "./course-ui"
-import { GradesErrorBoundary } from "./student-feedback"
+import { EmptyState } from "@/components/shared/learning-ui"
+import { formatDue } from "@/lib/format-date"
+import { LoadMore } from "@/components/shared/load-more"
+import { GradesErrorBoundary } from "./grades-error-boundary"
 
 export function CourseGrades({ courseId }: { courseId: Id<"courses"> }) {
   return (
@@ -63,7 +66,7 @@ function CourseGradesTable({ courseId }: { courseId: Id<"courses"> }) {
                     <TableCell className="min-w-48 whitespace-normal">
                       <Link
                         className="font-medium text-primary hover:underline"
-                        href={`/dashboard/courses/${courseId}/assignments/${assignment._id}`}
+                        href={courseRoutes(courseId).assignment(assignment._id)}
                       >
                         {assignment.title}
                       </Link>

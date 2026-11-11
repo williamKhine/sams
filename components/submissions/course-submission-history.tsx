@@ -1,12 +1,15 @@
 "use client"
 
+import { courseRoutes } from "@/lib/routes"
+
 import Link from "next/link"
 import { usePaginatedQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
 import { Badge } from "@/components/ui/badge"
-import { EmptyState } from "./learning-ui"
-import { formatDue, LoadMore } from "./course-ui"
+import { EmptyState } from "@/components/shared/learning-ui"
+import { formatDue } from "@/lib/format-date"
+import { LoadMore } from "@/components/shared/load-more"
 
 export default function CourseSubmissionHistory({
   courseId,
@@ -76,7 +79,9 @@ export default function CourseSubmissionHistory({
           <div className="flex flex-wrap gap-4 text-sm">
             <Link
               className="text-primary hover:underline"
-              href={`/dashboard/courses/${submission.courseId}/assignments/${submission.assignmentId}`}
+              href={courseRoutes(submission.courseId).assignment(
+                submission.assignmentId
+              )}
             >
               Assignment details
             </Link>

@@ -1,10 +1,10 @@
-import CoursePage from "@/components/dashboard/course-page"
+import AssignmentDetail from "@/components/assignments/assignment-detail"
 
 export default async function Page({
   params,
 }: {
   params: Promise<{ courseId: string; assignmentId: string }>
 }) {
-  const { courseId, assignmentId } = await params
-  return <CoursePage courseId={courseId} assignmentId={assignmentId} />
+  const { assignmentId } = await params
+  return <AssignmentDetail assignmentId={assignmentId} />
 }

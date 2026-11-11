@@ -1,46 +1,28 @@
 "use client"
 
+import { EnrollmentActivity } from "@/components/courses/enrollment-activity"
+import { StudentCourseCard } from "@/components/courses/course-cards"
 import { useState } from "react"
 import { useMutation, usePaginatedQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
-import { Button } from "@/components/ui/button"
-import { courseError, LoadMore } from "./course-ui"
-import Link from "next/link"
+import { courseError } from "@/lib/errors"
+import { LoadMore } from "@/components/shared/load-more"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { Search01Icon, ArrowRight01Icon } from "@hugeicons/core-free-icons"
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardContent,
-  CardFooter,
-} from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
+import { Search01Icon } from "@hugeicons/core-free-icons"
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
-  CourseArtwork,
   WelcomeBanner,
   EmptyState,
   CourseSkeletons,
   LearningSidebar,
-} from "./learning-ui"
-
-const statusLabel = {
-  pending: "Awaiting instructor approval",
-  approved: "Enrolled",
-  rejected: "Request rejected",
-}
+} from "@/components/shared/learning-ui"
 
 export default function StudentDashboard({ name }: { name: string | null }) {
   const courses = usePaginatedQuery(
     api.courses.active,
-    {},
-    { initialNumItems: 20 }
-  )
-  const enrollments = usePaginatedQuery(
-    api.enrollments.mine,
     {},
     { initialNumItems: 20 }
   )
@@ -151,126 +133,20 @@ export default function StudentDashboard({ name }: { name: string | null }) {
               ) : (
                 <div className="grid gap-5 sm:grid-cols-2">
                   {filtered.map((course, index) => (
-                    <Card
+                    <StudentCourseCard
                       key={course._id}
-                      className="gap-0 py-0 shadow-none transition-shadow hover:shadow-md"
-                    >
-                      <CourseArtwork code={course.code} index={index} />
-                      <CardContent className="flex-1 space-y-3 p-5">
-                        <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-                          {course.code}
-                        </p>
-                        <h3 className="text-base leading-snug font-semibold">
-                          {course.enrollmentStatus === "approved" ? (
-                            <Link
-                              className="hover:text-primary hover:underline"
-                              href={`/dashboard/courses/${course._id}`}
-                            >
-                              {course.name}
-                            </Link>
-                          ) : (
-                            course.name
-                          )}
-                        </h3>
-                        <p className="text-sm text-muted-foreground">
-                          {course.instructorName ??
-                            "Instructor to be announced"}
-                        </p>
-                        <Badge variant="secondary">
-                          {course.enrollmentStatus
-                            ? statusLabel[course.enrollmentStatus]
-                            : "Open for enrollment"}
-                        </Badge>
-                      </CardContent>
-                      <CardFooter className="flex-wrap justify-between gap-3 border-t px-5 py-4 text-xs text-muted-foreground">
-                        <span>
-                          {course.approvedCount} / {course.maxStudents} students
-                        </span>
-                        {course.enrollmentStatus === "approved" ? (
-                          <Link
-                            href={`/dashboard/courses/${course._id}`}
-                            className="flex items-center gap-1 font-medium text-primary"
-                          >
-                            Open course{" "}
-                            <HugeiconsIcon icon={ArrowRight01Icon} size={16} />
-                          </Link>
-                        ) : !course.enrollmentStatus ? (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            disabled={
-                              busy || course.approvedCount >= course.maxStudents
-                            }
-                            onClick={() => void enroll(course._id)}
-                          >
-                            {course.approvedCount >= course.maxStudents
-                              ? "Course full"
-                              : "Request enrollment"}
-                          </Button>
-                        ) : (
-                          <span>
-                            {course.enrollmentStatus === "pending"
-                              ? "Approval pending"
-                              : "Contact your instructor"}
-                          </span>
-                        )}
-                      </CardFooter>
-                    </Card>
+                      course={course}
+                      index={index}
+                      busy={busy}
+                      onEnroll={enroll}
+                    />
                   ))}
                 </div>
               )}
               <LoadMore status={courses.status} loadMore={courses.loadMore} />
             </CardContent>
           </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle>Enrollment activity</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {enrollments.status === "LoadingFirstPage" ? (
-                <p role="status" className="text-muted-foreground">
-                  Loading enrollments…
-                </p>
-              ) : enrollments.results.length === 0 ? (
-                <p className="text-muted-foreground">
-                  Your enrollment requests and their status will appear here.
-                </p>
-              ) : (
-                enrollments.results.map((enrollment) => (
-                  <div
-                    key={enrollment._id}
-                    className="flex flex-wrap items-center justify-between gap-3 border-b pb-4 last:border-0 last:pb-0"
-                  >
-                    <div>
-                      <p className="font-medium">
-                        {enrollment.status === "approved" ? (
-                          <Link
-                            className="hover:text-primary hover:underline"
-                            href={`/dashboard/courses/${enrollment.courseId}`}
-                          >
-                            {enrollment.courseName}
-                          </Link>
-                        ) : (
-                          enrollment.courseName
-                        )}
-                      </p>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        {enrollment.courseCode}
-                        {!enrollment.courseActive ? " · Course inactive" : ""}
-                      </p>
-                    </div>
-                    <Badge variant="secondary">
-                      {statusLabel[enrollment.status]}
-                    </Badge>
-                  </div>
-                ))
-              )}
-              <LoadMore
-                status={enrollments.status}
-                loadMore={enrollments.loadMore}
-              />
-            </CardContent>
-          </Card>
+          <EnrollmentActivity />
         </div>
         <LearningSidebar />
       </div>

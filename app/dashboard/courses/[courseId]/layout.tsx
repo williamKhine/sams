@@ -1,4 +1,4 @@
-import CourseShell from "@/components/dashboard/course-shell"
+import CourseShell from "@/components/courses/course-shell"
 
 export default async function CourseLayout({
   children,

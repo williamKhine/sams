@@ -6,6 +6,8 @@ import { usePathname } from "next/navigation"
 import { useQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import type { Doc, Id } from "@/convex/_generated/dataModel"
+import { useDashboardUser } from "@/components/layout/dashboard-shell"
+import { courseRoutes } from "@/lib/routes"
 import { Badge } from "@/components/ui/badge"
 
 type CourseContext = { course: Doc<"courses">; role: "student" | "instructor" }
@@ -26,24 +28,20 @@ export default function CourseShell({
   children: ReactNode
 }) {
   const pathname = usePathname()
-  const user = useQuery(api.users.current)
-  const course = useQuery(
-    api.courses.get,
-    user?.role
-      ? { courseId: courseId as Id<"courses">, role: user.role }
-      : "skip"
-  )
-  const courseUrl = `/dashboard/courses/${courseId}`
-  const section = pathname.startsWith(`${courseUrl}/assignments`)
-    ? "Assignments"
-    : pathname === `${courseUrl}/grades`
-      ? "Grades"
-      : pathname === `${courseUrl}/submissions`
-        ? "Submission history"
-        : null
+  const user = useDashboardUser()
+  const course = useQuery(api.courses.get, {
+    courseId: courseId as Id<"courses">,
+    role: user.role,
+  })
+  const routes = courseRoutes(courseId)
+  const courseUrl = routes.home
+  const section = [
+    { label: "Assignments", href: routes.assignments },
+    { label: "Grades", href: routes.grades },
+    { label: "Submission history", href: routes.submissions },
+  ].find(({ href }) => pathname === href || pathname.startsWith(`${href}/`))
 
-  if (course === undefined || !user?.role)
-    return <p role="status">Loading course…</p>
+  if (course === undefined) return <p role="status">Loading course…</p>
   if (!course)
     return (
       <section className="space-y-4">
@@ -80,16 +78,11 @@ export default function CourseShell({
             <>
               <span aria-hidden="true">/</span>
               <Link
-                href={`${courseUrl}/${section === "Assignments" ? "assignments" : section === "Grades" ? "grades" : "submissions"}`}
-                aria-current={
-                  pathname === `${courseUrl}/assignments` ||
-                  section !== "Assignments"
-                    ? "page"
-                    : undefined
-                }
+                href={section.href}
+                aria-current={pathname === section.href ? "page" : undefined}
                 className="hover:text-primary hover:underline"
               >
-                {section}
+                {section.label}
               </Link>
             </>
           )}
