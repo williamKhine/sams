@@ -99,9 +99,18 @@ http.route({
         "assignmentId"
       ) as Id<"assignments"> | null
       const requestId = request.headers.get("X-Submission-Key")
-      const fileName = decodeURIComponent(
-        request.headers.get("X-File-Name") ?? ""
-      )
+      let fileName: string
+      try {
+        fileName = decodeURIComponent(request.headers.get("X-File-Name") ?? "")
+      } catch {
+        return respond(
+          {
+            error:
+              "Please select a file with a valid name (up to 255 characters).",
+          },
+          400
+        )
+      }
       if (!assignmentId || !requestId || !fileName)
         return respond({ error: "Select an assignment and a file." }, 400)
       const previous = await ctx.runQuery(
