@@ -1,5 +1,7 @@
 "use client"
 
+import { formatFileSize } from "@/lib/format-file-size"
+
 import { courseRoutes } from "@/lib/routes"
 
 import Link from "next/link"
@@ -22,7 +24,7 @@ export default function CourseSubmissionHistory({
     { initialNumItems: 20 }
   )
   return (
-    <section className="space-y-6">
+    <section className="min-w-0 space-y-6">
       <div className="space-y-2">
         <h2 className="text-2xl font-semibold">Submission history</h2>
         <p className="text-muted-foreground">
@@ -44,11 +46,11 @@ export default function CourseSubmissionHistory({
           className="space-y-3 rounded-xl border p-5"
         >
           <div className="flex flex-wrap items-start justify-between gap-3">
-            <div className="space-y-1">
-              <h3 className="text-lg font-semibold">
+            <div className="min-w-0 space-y-1">
+              <h3 className="text-lg font-semibold wrap-anywhere">
                 {submission.assignmentTitle}
               </h3>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm wrap-anywhere text-muted-foreground">
                 {submission.courseCode} · {submission.courseName}
               </p>
             </div>
@@ -68,11 +70,7 @@ export default function CourseSubmissionHistory({
             <div>
               <dt className="text-muted-foreground">File</dt>
               <dd className="break-all">
-                {submission.fileName} ·{" "}
-                {(submission.size / 1024).toLocaleString(undefined, {
-                  maximumFractionDigits: 1,
-                })}{" "}
-                KB
+                {submission.fileName} · {formatFileSize(submission.size)}
               </dd>
             </div>
           </dl>

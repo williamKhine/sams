@@ -1,5 +1,7 @@
 "use client"
 
+import { formatFileSize } from "@/lib/format-file-size"
+
 import { useRef, useState, type FormEvent } from "react"
 import { useAuth } from "@clerk/nextjs"
 import type { Id } from "@/convex/_generated/dataModel"
@@ -7,6 +9,14 @@ import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { getConvexToken } from "@/lib/convex-token"
+
+function fileError(file: File) {
+  if (file.size === 0)
+    return "This file is empty. Select a file that contains your work."
+  if (file.size > 25 * 1024 * 1024)
+    return "This file is larger than 25 MB. Select a smaller file or compress it into a ZIP."
+  return null
+}
 
 export function SubmissionUploadForm({
   assignmentId,
@@ -31,8 +41,10 @@ export function SubmissionUploadForm({
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (inFlight.current || !file) return
-    if (file.size === 0 || file.size > 25 * 1024 * 1024) {
-      setError("Select a non-empty file up to 25 MB.")
+    const validationError = fileError(file)
+    if (validationError) {
+      setError(validationError)
+      fileInput.current?.focus()
       return
     }
     inFlight.current = true
@@ -60,7 +72,7 @@ export function SubmissionUploadForm({
           body: file,
         }
       )
-      const result: unknown = await response.json()
+      const result: unknown = await response.json().catch(() => null)
       if (!response.ok)
         throw new Error(
           result &&
@@ -70,6 +82,17 @@ export function SubmissionUploadForm({
             ? result.error
             : "Upload failed. Please try again."
         )
+      if (
+        !result ||
+        typeof result !== "object" ||
+        !("submissionId" in result) ||
+        typeof result.submissionId !== "string" ||
+        !result.submissionId
+      ) {
+        throw new Error(
+          "The server did not confirm your submission. Check your submission history, then retry with the same file if needed."
+        )
+      }
       setNotice(
         "Submission saved. Your receipt and file appear in Submission history below."
       )
@@ -78,9 +101,11 @@ export function SubmissionUploadForm({
       if (fileInput.current) fileInput.current.value = ""
     } catch (error) {
       setError(
-        error instanceof Error
-          ? error.message
-          : "Upload failed. Your file has not been confirmed. Please try again."
+        error instanceof TypeError
+          ? "Unable to connect. Check your connection, then retry with the same file. Your submission has not been confirmed."
+          : error instanceof Error
+            ? error.message
+            : "Upload failed. Your file has not been confirmed. Please try again."
       )
     } finally {
       inFlight.current = false
@@ -89,7 +114,7 @@ export function SubmissionUploadForm({
   }
 
   return (
-    <form onSubmit={submit} className="space-y-4">
+    <form onSubmit={submit} className="min-w-0 space-y-4" aria-busy={busy}>
       <Label className="block space-y-2">
         <span className="font-medium">
           {hasSubmission ? "Submit another attempt" : "Add a file"}
@@ -99,12 +124,18 @@ export function SubmissionUploadForm({
           type="file"
           required
           disabled={busy}
-          aria-describedby="submission-file-help"
-          className="block w-full rounded-md border p-3 text-sm file:mr-4 file:rounded-md file:border-0 file:bg-muted file:px-3 file:py-2"
+          aria-describedby={
+            error
+              ? "submission-file-help submission-file-error"
+              : "submission-file-help"
+          }
+          aria-invalid={Boolean(error)}
+          className="block h-auto min-h-11 w-full rounded-md border p-3 text-sm file:mr-4 file:rounded-md file:border-0 file:bg-muted file:px-3 file:py-2"
           onChange={(event) => {
-            setFile(event.target.files?.[0] ?? null)
+            const selected = event.target.files?.[0] ?? null
+            setFile(selected)
             requestId.current = null
-            setError(null)
+            setError(selected ? fileError(selected) : null)
             setNotice(null)
           }}
         />
@@ -114,12 +145,8 @@ export function SubmissionUploadForm({
         Earlier attempts remain in your history.
       </p>
       {file && (
-        <p className="text-sm">
-          Selected: {file.name} ·{" "}
-          {(file.size / 1024).toLocaleString(undefined, {
-            maximumFractionDigits: 1,
-          })}{" "}
-          KB
+        <p className="text-sm wrap-anywhere">
+          Selected: {file.name} · {formatFileSize(file.size)}
         </p>
       )}
       {now > dueDate && (
@@ -128,12 +155,15 @@ export function SubmissionUploadForm({
         </p>
       )}
       {error && (
-        <p role="alert" className="text-destructive">
+        <p id="submission-file-error" role="alert" className="text-destructive">
           {error}
         </p>
       )}
       {notice && <p role="status">{notice}</p>}
-      <Button type="submit" disabled={busy || !file}>
+      <Button
+        type="submit"
+        disabled={busy || !file || Boolean(file && fileError(file))}
+      >
         {busy ? "Uploading and saving…" : "Submit assignment"}
       </Button>
     </form>

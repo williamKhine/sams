@@ -1,5 +1,7 @@
 "use client"
 
+import { formatFileSize } from "@/lib/format-file-size"
+
 import { SubmissionUploadForm } from "./submission-upload-form"
 import StudentFeedback from "@/components/grades/student-feedback"
 
@@ -27,7 +29,7 @@ export default function StudentSubmission({
   const latest = history.results[0]
 
   return (
-    <section className="space-y-6 rounded-xl border p-6">
+    <section className="min-w-0 space-y-6 rounded-xl border p-4 sm:p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-xl font-semibold">My submission</h2>
         {history.status !== "LoadingFirstPage" && (
@@ -65,13 +67,10 @@ export default function StudentSubmission({
             key={submission._id}
             className="space-y-2 rounded-lg border p-4"
           >
-            <p className="font-medium">{submission.fileName}</p>
+            <p className="font-medium wrap-anywhere">{submission.fileName}</p>
             <p className="text-sm">
               Submitted {formatDue(submission._creationTime)} ·{" "}
-              {(submission.size / 1024).toLocaleString(undefined, {
-                maximumFractionDigits: 1,
-              })}{" "}
-              KB
+              {formatFileSize(submission.size)}
               {submission._creationTime > submission.dueDate
                 ? " · Late"
                 : " · On time"}
