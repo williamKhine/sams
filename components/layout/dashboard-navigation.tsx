@@ -26,8 +26,18 @@ export default function DashboardNavigation({
       href: "/dashboard",
       label: "My courses",
       icon: BookOpen01Icon,
-      active: !courseUrl,
+      active: pathname === "/dashboard",
     },
+    ...(!routes && role === "instructor"
+      ? [
+          {
+            href: "/dashboard/courses/new",
+            label: "Create a course",
+            icon: BookOpen01Icon,
+            active: pathname === "/dashboard/courses/new",
+          },
+        ]
+      : []),
     ...(routes
       ? [
           {

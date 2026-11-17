@@ -31,7 +31,7 @@ Run `npx convex dev` and `npm run dev` in separate terminals. The application op
 
 ## Routing and data boundaries
 
-`/dashboard` is My courses. Course tools live under `/dashboard/courses/[courseId]`: course home, `assignments`, `assignments/[assignmentId]`, `grades`, and `submissions`. Legacy dashboard-wide tool URLs redirect to My courses. Navigation changes with course context and role; grades and submission history are student tools.
+`/dashboard` is My courses. Instructors create courses at `/dashboard/courses/new`, linked from their dashboard and navigation; successful creation opens the new course. Course tools live under `/dashboard/courses/[courseId]`: course home, `assignments`, `assignments/[assignmentId]`, `grades`, and `submissions`. Legacy dashboard-wide tool URLs redirect to My courses. Navigation changes with course context and role; grades and submission history are student tools.
 
 The dashboard shell resolves the signed-in profile once and shares it with descendants. The course shell resolves authorized course access and shares the course and role. Individual route screens own their feature queries instead of branching through one multipurpose page. Client checks control presentation; Convex independently enforces every permission.
 

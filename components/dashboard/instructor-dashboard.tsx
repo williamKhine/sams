@@ -1,8 +1,9 @@
 "use client"
 
-import { CreateCourseForm } from "@/components/courses/create-course-form"
+import Link from "next/link"
+import { buttonVariants } from "@/components/ui/button"
 import { InstructorCourseCard } from "@/components/courses/course-cards"
-import { useState, type FormEvent } from "react"
+import { useState } from "react"
 import { useMutation, usePaginatedQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import type { Doc } from "@/convex/_generated/dataModel"
@@ -24,49 +25,11 @@ export default function InstructorDashboard({ name }: { name: string | null }) {
     {},
     { initialNumItems: 20 }
   )
-  const create = useMutation(api.courses.create)
   const setActive = useMutation(api.courses.setActive)
   const [search, setSearch] = useState("")
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
-
-  async function createCourse(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    if (busy) return
-    const form = event.currentTarget
-    const data = new FormData(form)
-    setError(null)
-    setNotice(null)
-    const name = String(data.get("name") ?? "").trim()
-    const code = String(data.get("code") ?? "").trim()
-    const maxStudents = Number(data.get("maxStudents"))
-    if (!name || !code) {
-      setError(
-        "Enter a course name and code. These cannot contain only spaces."
-      )
-      return
-    }
-    if (!Number.isSafeInteger(maxStudents) || maxStudents < 1) {
-      setError("Enter a whole number of students greater than zero.")
-      return
-    }
-    setBusy(true)
-    try {
-      await create({
-        name,
-        code,
-        maxStudents,
-        active: data.get("active") === "on",
-      })
-      form.reset()
-      setNotice("Course created.")
-    } catch (error) {
-      setError(courseError(error))
-    } finally {
-      setBusy(false)
-    }
-  }
 
   async function toggleActive(course: Doc<"courses">) {
     if (busy) return
@@ -102,21 +65,29 @@ export default function InstructorDashboard({ name }: { name: string | null }) {
               <CardTitle className="text-xl font-semibold">
                 My courses
               </CardTitle>
-              <Input
-                className="sm:w-56"
-                placeholder="Search courses"
-                aria-label="Search courses"
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-              />
+              <div className="flex flex-wrap items-center gap-3">
+                <Input
+                  className="w-full sm:w-56"
+                  placeholder="Search courses"
+                  aria-label="Search courses"
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                />
+                <Link
+                  href="/dashboard/courses/new"
+                  className={buttonVariants()}
+                >
+                  Create a course
+                </Link>
+              </div>
             </CardHeader>
             <CardContent className="space-y-5">
               {courses.status === "LoadingFirstPage" ? (
                 <CourseSkeletons />
               ) : courses.results.length === 0 ? (
                 <EmptyState title="Your classroom starts here">
-                  Create your first course below, then add assignments and
-                  welcome your students.
+                  Create your first course using the link above, then add
+                  assignments and welcome your students.
                 </EmptyState>
               ) : null}
               {courses.status !== "LoadingFirstPage" &&
@@ -147,7 +118,6 @@ export default function InstructorDashboard({ name }: { name: string | null }) {
               <LoadMore status={courses.status} loadMore={courses.loadMore} />
             </CardContent>
           </Card>
-          <CreateCourseForm busy={busy} onSubmit={createCourse} />
           {error && (
             <p role="alert" className="text-destructive">
               {error}
