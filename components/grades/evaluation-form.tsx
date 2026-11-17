@@ -1,6 +1,6 @@
 "use client"
 
-import { useRef, useState, type FormEvent } from "react"
+import { useId, useRef, useState, type FormEvent } from "react"
 import { useMutation } from "convex/react"
 import type { FunctionReturnType } from "convex/server"
 import { api } from "@/convex/_generated/api"
@@ -17,6 +17,7 @@ type Review = FunctionReturnType<typeof api.grades.submissions>["page"][number]
 
 export function EvaluationForm({ row }: { row: Review }) {
   const save = useMutation(api.grades.saveFeedback)
+  const gradeHelpId = useId()
   const [grade, setGrade] = useState(row.grade?.toString() ?? "")
   const [feedback, setFeedback] = useState(row.feedback ?? "")
   const [busy, setBusy] = useState(false)
@@ -29,6 +30,17 @@ export function EvaluationForm({ row }: { row: Review }) {
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (inFlight.current) return
+    const parsedGrade = grade.trim() === "" ? null : Number(grade)
+    if (
+      parsedGrade !== null &&
+      (!Number.isFinite(parsedGrade) || parsedGrade < 0 || parsedGrade > 100)
+    ) {
+      setError(
+        "Enter a grade between 0 and 100, or leave it blank to save feedback only."
+      )
+      setNotice(null)
+      return
+    }
     inFlight.current = true
     setBusy(true)
     setError(null)
@@ -36,7 +48,7 @@ export function EvaluationForm({ row }: { row: Review }) {
     try {
       await save({
         submissionId: row.latestSubmissionId,
-        grade: grade.trim() === "" ? null : Number(grade),
+        grade: parsedGrade,
         feedback,
       })
       setNotice(
@@ -50,10 +62,10 @@ export function EvaluationForm({ row }: { row: Review }) {
     }
   }
   return (
-    <Card>
+    <Card className="min-w-0">
       <CardHeader className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <CardTitle>{row.studentName}</CardTitle>
+        <div className="min-w-0">
+          <CardTitle className="wrap-anywhere">{row.studentName}</CardTitle>
           <p className="mt-2 text-xs text-muted-foreground">
             Submitted {formatDue(row.submittedAt)}
           </p>
@@ -90,7 +102,7 @@ export function EvaluationForm({ row }: { row: Review }) {
             this file and save to update the evaluation.
           </p>
         )}
-        <form onSubmit={submit} className="space-y-4">
+        <form onSubmit={submit} className="space-y-4" aria-busy={busy}>
           <Label className="block max-w-48 space-y-2">
             <span>Grade (%)</span>
             <Input
@@ -99,6 +111,7 @@ export function EvaluationForm({ row }: { row: Review }) {
               max={100}
               step="0.01"
               placeholder="Not graded"
+              aria-describedby={gradeHelpId}
               value={grade}
               onChange={(e) => {
                 setGrade(e.target.value)
@@ -121,7 +134,7 @@ export function EvaluationForm({ row }: { row: Review }) {
               disabled={busy}
             />
           </Label>
-          <p className="text-xs text-muted-foreground">
+          <p id={gradeHelpId} className="text-xs text-muted-foreground">
             Leave the grade blank to save feedback without a grade, or to clear
             a previous grade.
           </p>
