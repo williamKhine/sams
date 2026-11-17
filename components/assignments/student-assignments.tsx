@@ -49,7 +49,10 @@ export default function StudentAssignments({
         </EmptyState>
       ) : (
         <div className="overflow-hidden rounded-lg border bg-card">
-          <Table className="w-full text-left text-sm">
+          <Table
+            aria-label="Course assignments"
+            className="w-full text-left text-sm"
+          >
             <TableHeader className="border-b bg-muted/50">
               <TableRow>
                 <TableHead scope="col" className="p-4">
@@ -72,7 +75,7 @@ export default function StudentAssignments({
                   key={assignment._id}
                   className="border-b last:border-0"
                 >
-                  <TableCell className="p-4">
+                  <TableCell className="max-w-80 min-w-48 p-4 wrap-anywhere whitespace-normal">
                     <Link
                       className="font-medium text-primary hover:underline"
                       href={courseRoutes(courseId).assignment(assignment._id)}

@@ -34,11 +34,11 @@ export default function AssignmentDetail({
     )
 
   return (
-    <section className="space-y-6">
+    <section className="min-w-0 space-y-6">
       <Card>
         <CardHeader>
           <CardTitle>
-            <h2 className="text-2xl">{assignment.title}</h2>
+            <h2 className="text-2xl wrap-anywhere">{assignment.title}</h2>
           </CardTitle>
           <p className="text-sm text-muted-foreground">
             Due {formatDue(assignment.dueDate)}
@@ -47,7 +47,7 @@ export default function AssignmentDetail({
         </CardHeader>
         <CardContent className="space-y-4">
           <h3 className="font-semibold">Description</h3>
-          <p className="whitespace-pre-wrap">
+          <p className="wrap-anywhere whitespace-pre-wrap">
             {assignment.description || "No description provided."}
           </p>
           {role === "instructor" && (

@@ -67,14 +67,14 @@ export default function DashboardNavigation({
     <div className="border-b bg-card">
       <nav
         aria-label={courseUrl ? "Course navigation" : "Dashboard navigation"}
-        className="page-width flex gap-6 overflow-x-auto sm:gap-9"
+        className="page-width flex flex-wrap gap-x-5 gap-y-0 sm:flex-nowrap sm:gap-9 sm:overflow-x-auto"
       >
         {links.map((link) => (
           <Link
             key={link.href}
             href={link.href}
             aria-current={link.active ? "page" : undefined}
-            className="flex shrink-0 items-center gap-2 border-b-[3px] border-transparent py-4 text-sm font-medium text-muted-foreground transition-colors hover:text-primary aria-[current=page]:border-primary aria-[current=page]:text-primary"
+            className="flex min-h-11 shrink-0 items-center gap-2 border-b-[3px] border-transparent py-3 text-sm font-medium text-muted-foreground transition-colors hover:text-primary aria-[current=page]:border-primary aria-[current=page]:text-primary sm:py-4"
           >
             <HugeiconsIcon icon={link.icon} size={19} />
             {link.label}

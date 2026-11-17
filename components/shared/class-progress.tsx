@@ -13,7 +13,7 @@ export function ClassProgress({
     expected > 0 ? Math.min(100, Math.round((completed / expected) * 100)) : 0
   return (
     <div className="space-y-2">
-      <div className="flex justify-between gap-3 text-sm">
+      <div className="flex flex-wrap justify-between gap-3 text-sm">
         <span className="font-medium">{label}</span>
         <span className="text-muted-foreground tabular-nums">
           {expected > 0 ? `${percent}%` : "Not started"}

@@ -38,7 +38,9 @@ export default function CourseOverview() {
             <dl className="space-y-3 text-sm">
               <div className="flex justify-between gap-4">
                 <dt className="text-muted-foreground">Course code</dt>
-                <dd className="font-medium">{course.code}</dd>
+                <dd className="min-w-0 text-right font-medium">
+                  {course.code}
+                </dd>
               </div>
               <div className="flex justify-between gap-4 border-t pt-3">
                 <dt className="text-muted-foreground">Enrollment</dt>

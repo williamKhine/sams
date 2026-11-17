@@ -125,7 +125,13 @@
 }
 @layer components {
   .page-width {
-    @apply mx-auto w-full max-w-7xl px-5 sm:px-8 lg:px-10;
+    @apply mx-auto w-full max-w-7xl min-w-0 px-4 sm:px-8 lg:px-10;
+  }
+  .dashboard-content {
+    overflow-wrap: anywhere;
+  }
+  .dashboard-content :is([data-slot="card"], [data-slot="card-content"]) {
+    min-width: 0;
   }
   .dashboard-content h1 {
     @apply text-2xl font-semibold tracking-tight sm:text-3xl;
@@ -166,5 +172,27 @@
     top: -70px;
     border: 28px solid #ffffff0d;
     border-radius: 50%;
+  }
+}
+
+/* Keep touch controls readable without triggering mobile browser input zoom. */
+@media (max-width: 639px) {
+  input,
+  textarea,
+  select {
+    font-size: 1rem;
+  }
+}
+@media (pointer: coarse) {
+  [data-slot="button"],
+  [data-slot="tabs-trigger"] {
+    min-height: 44px;
+  }
+  button[aria-label],
+  a[aria-label="SAMS home"] {
+    min-height: 44px;
+  }
+  button[aria-label] {
+    min-width: 44px;
   }
 }

@@ -39,7 +39,7 @@ export default function DashboardShell({
   }, [router, isLoaded, isSignedIn, isAuthenticated, user])
 
   return (
-    <div className="flex flex-1 flex-col [&>p]:mx-auto [&>p]:py-16">
+    <div className="flex min-w-0 flex-1 flex-col [&>p]:mx-auto [&>p]:max-w-xl [&>p]:px-4 [&>p]:py-16">
       {!isLoaded || isLoading ? (
         <p role="status">Loading your account…</p>
       ) : !isSignedIn ? (
