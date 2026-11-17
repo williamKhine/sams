@@ -3,6 +3,8 @@
 import Link from "next/link"
 import { Show, SignInButton, UserButton } from "@clerk/nextjs"
 import { useTheme } from "next-themes"
+import { useConvexAuth, useQuery } from "convex/react"
+import { api } from "@/convex/_generated/api"
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
   GridViewIcon,
@@ -21,6 +23,8 @@ import {
 
 export default function Header() {
   const { resolvedTheme, setTheme } = useTheme()
+  const { isAuthenticated } = useConvexAuth()
+  const user = useQuery(api.users.current, isAuthenticated ? {} : "skip")
   return (
     <header className="border-t-4 border-b border-t-primary bg-card">
       <a
@@ -46,7 +50,9 @@ export default function Header() {
             className="mx-3 hidden h-8! data-vertical:self-center lg:block"
           />
           <span className="hidden text-sm font-medium text-muted-foreground lg:block">
-            Learning environment
+            {isAuthenticated && user?.role === "instructor"
+              ? "Instructing environment"
+              : "Learning environment"}
           </span>
         </Link>
         <nav
