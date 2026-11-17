@@ -35,7 +35,10 @@ function validateFields(args: {
     throw new ConvexError(
       "Assignment description must be at most 5000 characters."
     )
-  if (!Number.isFinite(args.dueDate))
+  if (
+    !Number.isFinite(args.dueDate) ||
+    !Number.isFinite(new Date(args.dueDate).getTime())
+  )
     throw new ConvexError("Please provide a valid due date.")
   return { title, description, dueDate: args.dueDate }
 }
