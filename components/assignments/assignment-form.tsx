@@ -28,7 +28,7 @@ export function AssignmentForm({
       <h3 className="text-lg font-semibold">
         {editing ? "Edit assignment" : "New assignment"}
       </h3>
-      <Label className="block space-y-1">
+      <Label className="grid gap-2.5">
         <span>Title</span>
         <Input
           name="title"
@@ -39,7 +39,7 @@ export function AssignmentForm({
           defaultValue={editing?.title}
         />
       </Label>
-      <Label className="block space-y-1">
+      <Label className="grid gap-2.5">
         <span>Description</span>
         <Textarea
           name="description"
@@ -49,7 +49,7 @@ export function AssignmentForm({
           defaultValue={editing?.description}
         />
       </Label>
-      <Label className="block space-y-1">
+      <Label className="grid gap-2.5">
         <span>Due date</span>
         <Input
           name="dueDate"

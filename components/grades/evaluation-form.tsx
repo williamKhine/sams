@@ -103,7 +103,7 @@ export function EvaluationForm({ row }: { row: Review }) {
           </p>
         )}
         <form onSubmit={submit} className="space-y-4" aria-busy={busy}>
-          <Label className="block max-w-48 space-y-2">
+          <Label className="grid max-w-48 gap-2.5">
             <span>Grade (%)</span>
             <Input
               type="number"
@@ -120,7 +120,7 @@ export function EvaluationForm({ row }: { row: Review }) {
               disabled={busy}
             />
           </Label>
-          <Label className="block space-y-2">
+          <Label className="grid gap-2.5">
             <span>Instructor feedback</span>
             <Textarea
               rows={5}

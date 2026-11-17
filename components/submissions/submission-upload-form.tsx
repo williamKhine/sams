@@ -115,7 +115,7 @@ export function SubmissionUploadForm({
 
   return (
     <form onSubmit={submit} className="min-w-0 space-y-4" aria-busy={busy}>
-      <Label className="block space-y-2">
+      <Label className="grid gap-2.5">
         <span className="font-medium">
           {hasSubmission ? "Submit another attempt" : "Add a file"}
         </span>
