@@ -54,7 +54,7 @@ export default function StudentDashboard({ name }: { name: string | null }) {
     (course) =>
       `${course.name} ${course.code} ${course.instructorName ?? ""}`
         .toLowerCase()
-        .includes(search.toLowerCase()) &&
+        .includes(search.trim().toLowerCase()) &&
       (tab === "all" ||
         (tab === "enrolled"
           ? course.enrollmentStatus === "approved"
@@ -81,7 +81,7 @@ export default function StudentDashboard({ name }: { name: string | null }) {
         </p>
       )}
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
-        <div className="space-y-6">
+        <div className="min-w-0 space-y-6">
           <Card id="my-courses" className="scroll-mt-6">
             <CardHeader>
               <CardTitle className="text-xl font-semibold">
@@ -95,12 +95,19 @@ export default function StudentDashboard({ name }: { name: string | null }) {
               <div className="flex flex-wrap items-center justify-between gap-4 border-b pb-4">
                 <Tabs
                   value={tab}
+                  className="max-w-full min-w-0 overflow-x-auto pb-1"
                   onValueChange={(value) => setTab(String(value))}
                 >
-                  <TabsList variant="line">
-                    <TabsTrigger value="all">All courses</TabsTrigger>
-                    <TabsTrigger value="enrolled">Enrolled</TabsTrigger>
-                    <TabsTrigger value="pending">Pending</TabsTrigger>
+                  <TabsList variant="line" className="min-h-11 gap-0">
+                    <TabsTrigger className="px-2 sm:px-3" value="all">
+                      All courses
+                    </TabsTrigger>
+                    <TabsTrigger className="px-2 sm:px-3" value="enrolled">
+                      Enrolled
+                    </TabsTrigger>
+                    <TabsTrigger className="px-2 sm:px-3" value="pending">
+                      Pending
+                    </TabsTrigger>
                   </TabsList>
                 </Tabs>
                 <div className="relative w-full sm:w-52">
@@ -143,6 +150,13 @@ export default function StudentDashboard({ name }: { name: string | null }) {
                   ))}
                 </div>
               )}
+              {courses.status !== "Exhausted" &&
+                courses.status !== "LoadingFirstPage" && (
+                  <p className="text-xs text-muted-foreground">
+                    Filters search loaded courses. Load more to check additional
+                    courses.
+                  </p>
+                )}
               <LoadMore status={courses.status} loadMore={courses.loadMore} />
             </CardContent>
           </Card>

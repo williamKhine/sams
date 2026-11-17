@@ -36,14 +36,27 @@ export default function InstructorDashboard({ name }: { name: string | null }) {
     if (busy) return
     const form = event.currentTarget
     const data = new FormData(form)
-    setBusy(true)
     setError(null)
     setNotice(null)
+    const name = String(data.get("name") ?? "").trim()
+    const code = String(data.get("code") ?? "").trim()
+    const maxStudents = Number(data.get("maxStudents"))
+    if (!name || !code) {
+      setError(
+        "Enter a course name and code. These cannot contain only spaces."
+      )
+      return
+    }
+    if (!Number.isSafeInteger(maxStudents) || maxStudents < 1) {
+      setError("Enter a whole number of students greater than zero.")
+      return
+    }
+    setBusy(true)
     try {
       await create({
-        name: String(data.get("name")),
-        code: String(data.get("code")),
-        maxStudents: Number(data.get("maxStudents")),
+        name,
+        code,
+        maxStudents,
         active: data.get("active") === "on",
       })
       form.reset()
@@ -62,6 +75,9 @@ export default function InstructorDashboard({ name }: { name: string | null }) {
     setNotice(null)
     try {
       await setActive({ courseId: course._id, active: !course.active })
+      setNotice(
+        `${course.name} is now ${course.active ? "inactive" : "active"}.`
+      )
     } catch (error) {
       setError(courseError(error))
     } finally {
@@ -70,7 +86,9 @@ export default function InstructorDashboard({ name }: { name: string | null }) {
   }
 
   const filteredCourses = courses.results.filter((course) =>
-    `${course.name} ${course.code}`.toLowerCase().includes(search.toLowerCase())
+    `${course.name} ${course.code}`
+      .toLowerCase()
+      .includes(search.trim().toLowerCase())
   )
 
   return (
@@ -78,7 +96,7 @@ export default function InstructorDashboard({ name }: { name: string | null }) {
       <WelcomeBanner name={name} instructor />
       <TeachingOverview courses={courses.results} status={courses.status} />
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
-        <div className="space-y-6">
+        <div className="min-w-0 space-y-6">
           <Card id="my-courses" className="scroll-mt-6">
             <CardHeader className="gap-4 sm:flex sm:items-center sm:justify-between">
               <CardTitle className="text-xl font-semibold">
@@ -119,6 +137,13 @@ export default function InstructorDashboard({ name }: { name: string | null }) {
                   />
                 ))}
               </div>
+              {courses.status !== "Exhausted" &&
+                courses.status !== "LoadingFirstPage" && (
+                  <p className="text-xs text-muted-foreground">
+                    Search covers loaded courses. Load more to check additional
+                    courses.
+                  </p>
+                )}
               <LoadMore status={courses.status} loadMore={courses.loadMore} />
             </CardContent>
           </Card>

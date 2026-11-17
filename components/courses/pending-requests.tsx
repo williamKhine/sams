@@ -17,6 +17,7 @@ export function PendingRequests({ course }: { course: Doc<"courses"> }) {
   const decide = useMutation(api.enrollments.decide)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
 
   async function respond(
     enrollmentId: Id<"enrollments">,
@@ -25,8 +26,10 @@ export function PendingRequests({ course }: { course: Doc<"courses"> }) {
     if (busy) return
     setBusy(true)
     setError(null)
+    setNotice(null)
     try {
       await decide({ enrollmentId, decision })
+      setNotice(`Enrollment request ${decision}.`)
     } catch (error) {
       setError(courseError(error))
     } finally {
@@ -48,6 +51,7 @@ export function PendingRequests({ course }: { course: Doc<"courses"> }) {
           {error}
         </p>
       )}
+      {notice && <p role="status">{notice}</p>}
       {requests.status === "LoadingFirstPage" ? (
         <p role="status">Loading requests…</p>
       ) : requests.results.length === 0 ? (
@@ -58,14 +62,17 @@ export function PendingRequests({ course }: { course: Doc<"courses"> }) {
           key={request._id}
           className="flex flex-wrap items-center justify-between gap-3 border-b pb-3"
         >
-          <p>{request.studentName ?? `Student ${request.studentId}`}</p>
-          <div className="flex gap-2">
+          <p className="min-w-0 break-words">
+            {request.studentName ?? "Student"}
+          </p>
+          <div className="flex flex-wrap gap-2">
             <Button
               disabled={
                 busy ||
                 !course.active ||
                 course.approvedCount >= course.maxStudents
               }
+              aria-label={`Approve enrollment for ${request.studentName ?? "student"}`}
               onClick={() => void respond(request._id, "approved")}
             >
               Approve
@@ -73,6 +80,7 @@ export function PendingRequests({ course }: { course: Doc<"courses"> }) {
             <Button
               variant="outline"
               disabled={busy}
+              aria-label={`Reject enrollment for ${request.studentName ?? "student"}`}
               onClick={() => void respond(request._id, "rejected")}
             >
               Reject

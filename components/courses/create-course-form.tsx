@@ -13,7 +13,7 @@ export function CreateCourseForm({
   return (
     <form
       onSubmit={onSubmit}
-      className="grid gap-5 rounded-lg border bg-card p-6 sm:grid-cols-2"
+      className="grid min-w-0 gap-5 rounded-lg border bg-card p-4 sm:grid-cols-2 sm:p-6"
     >
       <div className="sm:col-span-2">
         <h2 className="text-lg font-semibold">Create a course</h2>
@@ -31,9 +31,19 @@ export function CreateCourseForm({
           name="code"
           required
           maxLength={40}
+          pattern={"[a-zA-Z0-9][a-zA-Z0-9 _\\-]*"}
+          title="Start with a letter or number. Use only letters, numbers, spaces, hyphens, or underscores."
+          aria-describedby="course-code-help"
           disabled={busy}
           placeholder="e.g. CPS714"
         />
+        <span
+          id="course-code-help"
+          className="block text-xs font-normal text-muted-foreground"
+        >
+          Letters, numbers, spaces, hyphens, or underscores. Codes are saved in
+          uppercase.
+        </span>
       </Label>
       <Label className="block space-y-1">
         <span>Maximum students</span>
@@ -41,6 +51,7 @@ export function CreateCourseForm({
           name="maxStudents"
           type="number"
           min={1}
+          max={Number.MAX_SAFE_INTEGER}
           step={1}
           required
           disabled={busy}
