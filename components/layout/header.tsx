@@ -43,7 +43,7 @@ export default function Header() {
           </span>
           <Separator
             orientation="vertical"
-            className="mx-3 hidden h-8! lg:block"
+            className="mx-3 hidden h-8! data-vertical:self-center lg:block"
           />
           <span className="hidden text-sm font-medium text-muted-foreground lg:block">
             Learning environment
@@ -109,10 +109,18 @@ export default function Header() {
           </Button>
           <Separator
             orientation="vertical"
-            className="mx-1 hidden h-7! sm:block"
+            className="mx-1 hidden h-7! data-vertical:self-center sm:block"
           />
           <Show when="signed-in">
-            <UserButton appearance={{ elements: { avatarBox: "size-9" } }} />
+            <UserButton
+              appearance={{
+                elements: {
+                  rootBox: "flex items-center",
+                  userButtonBox: "flex items-center",
+                  avatarBox: "size-9",
+                },
+              }}
+            />
           </Show>
           <Show when="signed-out">
             <SignInButton mode="modal">
