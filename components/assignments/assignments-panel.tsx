@@ -37,14 +37,21 @@ export default function AssignmentsPanel({
     const form = event.currentTarget
     const data = new FormData(form)
     const dueDate = new Date(String(data.get("dueDate"))).getTime()
-    if (Number.isNaN(dueDate)) {
+    if (!Number.isFinite(dueDate)) {
       setError("Please provide a valid due date.")
       return
     }
     const fields = {
-      title: String(data.get("title")),
-      description: String(data.get("description")),
+      title: String(data.get("title") ?? "").trim(),
+      description: String(data.get("description") ?? "").trim(),
       dueDate,
+    }
+    if (!fields.title) {
+      setError(
+        "Enter an assignment title using at least one non-space character."
+      )
+      form.querySelector<HTMLInputElement>('[name="title"]')?.focus()
+      return
     }
     setBusy(true)
     setError(null)
@@ -68,7 +75,11 @@ export default function AssignmentsPanel({
 
   async function deleteAssignment(assignment: Doc<"assignments">) {
     if (busy) return
-    if (!window.confirm(`Delete "${assignment.title}"? This can't be undone.`))
+    if (
+      !window.confirm(
+        `Delete "${assignment.title}"? Students will lose access to this assignment, its submissions, and evaluations. This can't be undone.`
+      )
+    )
       return
     setBusy(true)
     setError(null)
@@ -85,7 +96,7 @@ export default function AssignmentsPanel({
   }
 
   return (
-    <section className="space-y-6 rounded-xl border p-6">
+    <section className="min-w-0 space-y-6 rounded-xl border p-4 sm:p-6">
       <h2 className="text-xl font-semibold">
         Assignments for {course.name} ({course.code})
       </h2>
@@ -117,7 +128,7 @@ export default function AssignmentsPanel({
             key={assignment._id}
             className="space-y-2 rounded-lg border p-4"
           >
-            <h3 className="font-semibold">
+            <h3 className="font-semibold wrap-anywhere">
               <Link
                 className="hover:underline"
                 href={courseRoutes(course._id).assignment(assignment._id)}
@@ -138,7 +149,9 @@ export default function AssignmentsPanel({
               Evaluate submissions →
             </Link>
             {assignment.description && (
-              <p className="whitespace-pre-wrap">{assignment.description}</p>
+              <p className="wrap-anywhere whitespace-pre-wrap">
+                {assignment.description}
+              </p>
             )}
             <div className="flex gap-2">
               <Button

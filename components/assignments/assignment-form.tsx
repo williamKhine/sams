@@ -32,6 +32,7 @@ export function AssignmentForm({
         <span>Title</span>
         <Input
           name="title"
+          autoFocus={Boolean(editing)}
           required
           maxLength={150}
           disabled={busy}
@@ -53,12 +54,17 @@ export function AssignmentForm({
         <Input
           name="dueDate"
           type="datetime-local"
+          aria-describedby="assignment-due-help"
           required
           disabled={busy}
           defaultValue={editing ? toLocalInputValue(editing.dueDate) : ""}
         />
       </Label>
-      <div className="flex gap-2">
+      <p id="assignment-due-help" className="text-sm text-muted-foreground">
+        Use your local date and time. Students can submit after the deadline;
+        those attempts are marked late.
+      </p>
+      <div className="flex flex-wrap gap-2">
         <Button type="submit" disabled={busy}>
           {busy
             ? "Please wait…"
