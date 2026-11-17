@@ -39,8 +39,11 @@ The dashboard shell resolves the signed-in profile once and shares it with desce
 
 ## Verification
 
+- `npm test`
 - `npm run typecheck`
 - `npm run lint`
 - `npm run build` (or `npm run build -- --webpack` where Turbopack cannot run)
 
-No test framework is installed. For manual verification, check both roles: course navigation, enrollment controls, assignment management, uploads/history, and saved grades/feedback. Keep test credentials outside the repository.
+Vitest and convex-test exercise actual backend functions and HTTP upload routes in an isolated in-memory environment. Coverage includes both role workflows, enrollment capacity and decisions, assignment updates/deletion, upload validation and retry safety, submission history, grades/feedback, progress counters, profile synchronization, and permission isolation. Run `npm run test:watch` during development.
+
+Browser verification complements the integration suite: check both roles, course navigation, enrollment controls, assignment management, uploads/history, and saved grades/feedback at mobile, tablet, and desktop widths. Keep test credentials outside the repository. See [the system test report](docs/system-testing.md) for the latest checks and limitations.
