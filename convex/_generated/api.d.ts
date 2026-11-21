@@ -8,8 +8,17 @@
  * @module
  */
 
+import type * as assignments from "../assignments.js";
+import type * as courses from "../courses.js";
+import type * as enrollments from "../enrollments.js";
+import type * as grades from "../grades.js";
 import type * as http from "../http.js";
-import type * as tasks from "../tasks.js";
+import type * as lib_access from "../lib/access.js";
+import type * as lib_auth from "../lib/auth.js";
+import type * as lib_progress from "../lib/progress.js";
+import type * as lib_submissions from "../lib/submissions.js";
+import type * as progress from "../progress.js";
+import type * as submissions from "../submissions.js";
 import type * as users from "../users.js";
 
 import type {
@@ -19,8 +28,17 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  assignments: typeof assignments;
+  courses: typeof courses;
+  enrollments: typeof enrollments;
+  grades: typeof grades;
   http: typeof http;
-  tasks: typeof tasks;
+  "lib/access": typeof lib_access;
+  "lib/auth": typeof lib_auth;
+  "lib/progress": typeof lib_progress;
+  "lib/submissions": typeof lib_submissions;
+  progress: typeof progress;
+  submissions: typeof submissions;
   users: typeof users;
 }>;
 
